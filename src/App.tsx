@@ -3,7 +3,7 @@
  * Login → Empfänger → Datei → Senden | Eingehende Anfragen
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { LoginButton } from './components/LoginButton'
 import { FileSelector } from './components/FileSelector'
 import { RecipientInput } from './components/RecipientInput'
@@ -47,6 +47,7 @@ function App() {
   const [incomingOffers, setIncomingOffers] = useState<IncomingOffer[]>([])
   const [sendError, setSendError] = useState<string | null>(null)
   const [notificationsAsked, setNotificationsAsked] = useState(false)
+  const answerHandledRef = useRef<string | null>(null)
 
   onFileReceived(useCallback((file: Blob, fileName: string) => {
     const url = URL.createObjectURL(file)
@@ -74,8 +75,8 @@ function App() {
             })
           }
           if (Notification.permission === 'granted') {
-            new Notification('Zoop – neue Datei', {
-              body: `Neue Datei von ${senderNpub.slice(0, 16)}… (${fileName})`,
+            new Notification('Zoop – new file', {
+              body: `New file from ${senderNpub.slice(0, 16)}… (${fileName})`,
             })
           }
         }
@@ -98,16 +99,17 @@ function App() {
 
   const handleSend = useCallback(async () => {
     if (!user || !selectedFile || !recipientNpub.trim()) {
-      setSendError('Bitte Empfänger und Datei wählen.')
+      setSendError('Please choose recipient and file.')
       return
     }
     setSendError(null)
+    answerHandledRef.current = null
     reset()
     let recipientHex: string
     try {
       recipientHex = npubToHex(recipientNpub.trim())
     } catch {
-      setSendError('Ungültige npub.')
+      setSendError('Invalid npub.')
       return
     }
     try {
@@ -124,30 +126,50 @@ function App() {
         created_at: Math.floor(Date.now() / 1000),
       })
       if (!signed) {
-        setSendError('Event konnte nicht gesendet werden.')
+        setSendError('Could not publish event.')
         return
       }
+      const offerId = signed.id
+      const since = Math.floor(Date.now() / 1000) - 120
       const unsub = subscribeToEvents(
-        { kinds: [KIND_WEBRTC_ANSWER], '#e': [signed.id] },
+        { kinds: [KIND_WEBRTC_ANSWER], '#e': [offerId], since },
         async (answerEvent: VerifiedEvent) => {
+          if (answerHandledRef.current === offerId) return
+          answerHandledRef.current = offerId
           unsub()
           try {
             const decrypted = await decryptFromSender(answerEvent.content, answerEvent.pubkey, secretKeyHex ?? undefined)
             const answer = JSON.parse(decrypted) as RTCSessionDescriptionInit
             peer.signal(answer)
             await new Promise<void>((resolve, reject) => {
-              peer.on('connect', resolve)
-              peer.on('error', reject)
+              const t = setTimeout(() => {
+                reject(new Error('Peer connection timeout. Recipient may not have received the offer.'))
+              }, 45_000)
+              peer.on('connect', () => {
+                clearTimeout(t)
+                resolve()
+              })
+              peer.on('error', (err) => {
+                clearTimeout(t)
+                reject(err)
+              })
             })
             await sendFile(peer, selectedFile)
           } catch (e) {
-            setSendError(e instanceof Error ? e.message : 'Verbindung fehlgeschlagen')
+            setSendError(e instanceof Error ? e.message : 'Connection failed')
+            reset()
           }
         }
       )
-      setTimeout(() => unsub(), 35_000)
+      setTimeout(() => {
+        unsub()
+        if (answerHandledRef.current !== offerId) {
+          setSendError('No response from recipient (timeout).')
+          reset()
+        }
+      }, 35_000)
     } catch (e) {
-      setSendError(e instanceof Error ? e.message : 'WebRTC oder Verbindung fehlgeschlagen.')
+      setSendError(e instanceof Error ? e.message : 'WebRTC or connection failed.')
     }
   }, [user, selectedFile, recipientNpub, secretKeyHex, initiateConnection, publishEvent, subscribeToEvents, sendFile, reset])
 
@@ -170,12 +192,21 @@ function App() {
           created_at: Math.floor(Date.now() / 1000),
         })
         await new Promise<void>((resolve, reject) => {
-          peer.on('connect', resolve)
-          peer.on('error', reject)
+          const t = setTimeout(() => {
+            reject(new Error('Connection timeout. Sender may not have received the answer (check relays).'))
+          }, 45_000)
+          peer.on('connect', () => {
+            clearTimeout(t)
+            resolve()
+          })
+          peer.on('error', (err) => {
+            clearTimeout(t)
+            reject(err)
+          })
         })
         await receiveFile(peer, offer.fileName, offer.fileSize)
       } catch (e) {
-        setSendError(e instanceof Error ? e.message : 'Annahme fehlgeschlagen')
+        setSendError(e instanceof Error ? e.message : 'Accept failed')
       }
     },
     [acceptConnection, publishEvent, receiveFile, reset, secretKeyHex]
@@ -193,11 +224,11 @@ function App() {
     fileSize: o.fileSize,
   }))
 
-  const baseStyles = { minHeight: '100vh', background: '#fafafa', color: '#171717', padding: '20px' }
+  const baseStyles = { minHeight: '100vh', background: '#0f0f0f', color: '#fafafa', padding: '20px' }
   const mainStyles = { maxWidth: '512px', margin: '0 auto', padding: '64px 16px 32px' }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100" style={baseStyles}>
+    <div className="min-h-screen" style={baseStyles}>
       <header className="absolute top-0 right-0 p-4 z-10" style={{ position: 'absolute', top: 0, right: 0, padding: '16px', zIndex: 10 }}>
         <LoginButton
           user={user}
@@ -214,40 +245,39 @@ function App() {
           <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '24px', fontWeight: 'bold', color: '#7B3FF2' }}>
             ⚡ Zoop
           </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1" style={{ fontSize: '14px', color: '#71717a', marginTop: '4px' }}>
-            P2P-Dateien über Nostr – keine Registrierung
+          <p className="text-sm mt-1" style={{ fontSize: '14px', color: '#a1a1aa', marginTop: '4px' }}>
+            P2P files over Nostr – no sign-up
           </p>
         </div>
 
         {!user ? (
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 p-8 text-center" style={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
-            <p className="text-zinc-600 dark:text-zinc-400" style={{ color: '#525252', fontSize: '14px' }}>
-              Bitte oben mit Nostr verbinden, um Dateien zu senden oder zu empfangen.
+          <div className="rounded-2xl p-8 text-center" style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
+            <p style={{ color: '#a1a1aa', fontSize: '14px' }}>
+              Connect with Nostr above to send or receive files.
             </p>
           </div>
         ) : (
           <>
             <section style={{ marginTop: '24px' }}>
-              <h2 style={{ fontSize: '14px', fontWeight: 500, color: '#71717a', marginBottom: '8px' }}>📤 Datei senden</h2>
+              <h2 style={{ fontSize: '14px', fontWeight: 500, color: '#a1a1aa', marginBottom: '8px' }}>📤 Send file</h2>
               <RecipientInput
                 value={recipientNpub}
                 onChange={setRecipientNpub}
-                placeholder="npub1… (Empfänger)"
+                placeholder="npub1… (recipient)"
               />
               <FileSelector
                 onFilesSelect={(files) => {
-                  // Aktuell wird eine Datei nach der anderen übertragen – nimm die erste.
                   setSelectedFile(files[0] ?? null)
                 }}
                 disabled={state === 'sending' || state === 'receiving' || state === 'connecting'}
               />
               {selectedFile && (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">
-                  Ausgewählt: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                <p className="text-sm truncate" style={{ color: '#a1a1aa' }}>
+                  Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
                 </p>
               )}
               {(sendError || transferError) && (
-                <p className="text-sm text-red-600 dark:text-red-400">{sendError ?? transferError}</p>
+                <p className="text-sm" style={{ color: '#ef4444' }}>{sendError ?? transferError}</p>
               )}
               <TransferProgress
                 progress={progress}
@@ -264,15 +294,15 @@ function App() {
                 disabled={!recipientNpub.trim() || !selectedFile || state === 'sending' || state === 'connecting'}
                 style={{ width: '100%', padding: '14px 16px', fontSize: '16px', fontWeight: 500, color: '#fff', background: '#7B3FF2', border: 'none', borderRadius: '12px', cursor: 'pointer' }}
               >
-                Senden
+                Send
               </button>
             </section>
 
             <section style={{ marginTop: '24px' }}>
-              <h2 style={{ fontSize: '14px', fontWeight: 500, color: '#71717a', marginBottom: '8px' }}>📥 Eingehende Anfragen</h2>
+              <h2 style={{ fontSize: '14px', fontWeight: 500, color: '#a1a1aa', marginBottom: '8px' }}>📥 Incoming requests</h2>
               {incomingRequests.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 p-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                  Keine neuen Anfragen
+                <div className="rounded-xl border border-dashed p-6 text-center text-sm" style={{ borderColor: '#333', color: '#71717a' }}>
+                  No new requests
                 </div>
               ) : (
                 <ul className="space-y-3">

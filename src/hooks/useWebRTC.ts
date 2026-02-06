@@ -93,7 +93,7 @@ export function useWebRTC(): UseWebRTCReturn {
       peer.on('error', fail)
       const t = setTimeout(() => {
         peer.destroy()
-        fail(new Error('Verbindungsaufbau-Timeout (30s)'))
+        fail(new Error('Connection timeout (30s)'))
       }, CONNECTION_TIMEOUT_MS)
     })
   }, [])
@@ -129,7 +129,7 @@ export function useWebRTC(): UseWebRTCReturn {
       peer.on('error', fail)
       const t = setTimeout(() => {
         peer.destroy()
-        fail(new Error('Verbindungsaufbau-Timeout (30s)'))
+        fail(new Error('Connection timeout (30s)'))
       }, CONNECTION_TIMEOUT_MS)
     })
   }, [])
@@ -180,7 +180,7 @@ export function useWebRTC(): UseWebRTCReturn {
     }
     if (abortRef.current) {
       setState('error')
-      setError('Abgebrochen')
+      setError('Cancelled')
       return
     }
     setState('done')

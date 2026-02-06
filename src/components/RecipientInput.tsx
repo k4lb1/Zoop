@@ -23,9 +23,9 @@ export function RecipientInput({ value, onChange, placeholder = 'npub1…', disa
         padding: '12px 16px',
         fontSize: '16px',
         borderRadius: '12px',
-        border: '1px solid #d4d4d8',
-        background: '#fff',
-        color: '#18181b',
+        border: '1px solid #333',
+        background: '#1a1a1a',
+        color: '#fafafa',
         boxSizing: 'border-box',
       }}
     />

@@ -1,8 +1,10 @@
 /**
- * LoginButton – Extension (Connect with Nostr) oder nsec eingeben
+ * LoginButton – Extension (Connect with Nostr) or nsec login, optional generate new nsec
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { nip19 } from 'nostr-tools'
+import { generateSecretKey } from 'nostr-tools/pure'
 import type { NostrUser } from '../hooks/useNostr'
 
 type Props = {
@@ -15,10 +17,18 @@ type Props = {
 }
 
 const btn = { padding: '10px 16px', fontSize: '14px', fontWeight: 500, border: 'none', borderRadius: '12px', cursor: 'pointer' as const }
+const darkBorder = '#333'
+const darkMuted = '#a1a1aa'
 
 export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, isExtensionAvailable }: Props) {
   const [nsecInput, setNsecInput] = useState('')
   const [showNsec, setShowNsec] = useState(false)
+
+  const handleGenerateNsec = useCallback(() => {
+    const sk = generateSecretKey()
+    const nsec = nip19.nsecEncode(sk)
+    setNsecInput(nsec)
+  }, [])
 
   const handleNsecSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,11 +41,11 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
   if (user) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ fontSize: '14px', color: '#71717a', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={user.npub}>
+        <span style={{ fontSize: '14px', color: darkMuted, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={user.npub}>
           {user.npub.slice(0, 10)}…{user.npub.slice(-8)}
         </span>
-        <button type="button" onClick={onLogout} style={{ ...btn, color: '#3f3f46', background: '#f4f4f5' }}>
-          Abmelden
+        <button type="button" onClick={onLogout} style={{ ...btn, color: '#e4e4e7', background: '#27272a' }}>
+          Log out
         </button>
       </div>
     )
@@ -44,8 +54,8 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
       {!isExtensionAvailable && (
-        <p style={{ fontSize: '12px', color: '#b45309', maxWidth: '260px', textAlign: 'right' }}>
-          Keine Nostr-Extension – nutze unten „Mit nsec anmelden“ oder installiere Alby/nos2x.
+        <p style={{ fontSize: '12px', color: '#f59e0b', maxWidth: '260px', textAlign: 'right' }}>
+          No Nostr extension – use “Login with nsec” below or install Alby/nos2x.
         </p>
       )}
       <button
@@ -60,9 +70,9 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
       <button
         type="button"
         onClick={() => setShowNsec((s) => !s)}
-        style={{ ...btn, color: '#71717a', background: 'transparent', border: '1px solid #d4d4d8', fontSize: '12px' }}
+        style={{ ...btn, color: darkMuted, background: 'transparent', border: `1px solid ${darkBorder}`, fontSize: '12px' }}
       >
-        {showNsec ? 'nsec ausblenden' : 'Mit nsec anmelden'}
+        {showNsec ? 'Hide nsec' : 'Login with nsec'}
       </button>
 
       {showNsec && (
@@ -73,18 +83,21 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
             onChange={(e) => setNsecInput(e.target.value)}
             placeholder="nsec1…"
             autoComplete="off"
-            style={{ width: '100%', padding: '8px 12px', fontSize: '13px', borderRadius: '8px', border: '1px solid #d4d4d8', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '8px 12px', fontSize: '13px', borderRadius: '8px', border: `1px solid ${darkBorder}`, background: '#1a1a1a', color: '#fafafa', boxSizing: 'border-box' }}
           />
-          <button type="submit" style={{ ...btn, color: '#fff', background: '#7B3FF2', fontSize: '13px' }}>
-            Mit nsec anmelden
+          <button type="button" onClick={handleGenerateNsec} style={{ ...btn, color: darkMuted, background: 'transparent', border: `1px solid ${darkBorder}`, fontSize: '12px' }}>
+            Generate new nsec
           </button>
-          <p style={{ fontSize: '11px', color: '#a1a1aa', margin: 0 }}>
-            Nur auf vertrauenswürdigen Seiten nutzen. nsec wird nicht gespeichert.
+          <button type="submit" style={{ ...btn, color: '#fff', background: '#7B3FF2', fontSize: '13px' }}>
+            Login with nsec
+          </button>
+          <p style={{ fontSize: '11px', color: darkMuted, margin: 0 }}>
+            Only use on trusted sites. nsec is not stored.
           </p>
         </form>
       )}
 
-      {error && <p style={{ fontSize: '12px', color: '#dc2626', maxWidth: '260px', textAlign: 'right' }}>{error}</p>}
+      {error && <p style={{ fontSize: '12px', color: '#ef4444', maxWidth: '260px', textAlign: 'right' }}>{error}</p>}
     </div>
   )
 }

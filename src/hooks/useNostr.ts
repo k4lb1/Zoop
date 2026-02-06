@@ -53,7 +53,7 @@ export function useNostr(): UseNostrReturn {
     setError(null)
     secretKeyRef.current = null
     if (!window.nostr) {
-      setError('Keine Nostr-Extension (z.B. Alby/nos2x) gefunden. Bitte installieren.')
+      setError('No Nostr extension (e.g. Alby/nos2x) found. Please install one.')
       return null
     }
     try {
@@ -62,7 +62,7 @@ export function useNostr(): UseNostrReturn {
       setUser({ pubkey, npub })
       return { pubkey, npub }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Login fehlgeschlagen'
+      const msg = e instanceof Error ? e.message : 'Login failed'
       setError(msg)
       return null
     }
@@ -72,13 +72,13 @@ export function useNostr(): UseNostrReturn {
     setError(null)
     const raw = nsec.trim()
     if (!raw) {
-      setError('Bitte nsec eingeben.')
+      setError('Please enter nsec.')
       return null
     }
     try {
       const decoded = nip19.decode(raw)
       if (decoded.type !== 'nsec') {
-        setError('Ungültiges nsec-Format.')
+        setError('Invalid nsec format.')
         return null
       }
       const secBytes = decoded.data as Uint8Array
@@ -89,7 +89,7 @@ export function useNostr(): UseNostrReturn {
       setUser({ pubkey: pubkeyHex, npub })
       return { pubkey: pubkeyHex, npub }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Ungültiges nsec'
+      const msg = e instanceof Error ? e.message : 'Invalid nsec'
       setError(msg)
       return null
     }
@@ -131,13 +131,13 @@ export function useNostr(): UseNostrReturn {
         await Promise.all(r.map((relay) => relay.publish(signed)))
         return signed
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Publish fehlgeschlagen'
+        const msg = e instanceof Error ? e.message : 'Publish failed'
         setError(msg)
         return null
       }
     }
     if (!window.nostr) {
-      setError('Nostr-Extension oder nsec nötig.')
+      setError('Nostr extension or nsec required.')
       return null
     }
     try {
@@ -146,7 +146,7 @@ export function useNostr(): UseNostrReturn {
       await Promise.all(r.map((relay) => relay.publish(signed)))
       return signed
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Publish fehlgeschlagen'
+      const msg = e instanceof Error ? e.message : 'Publish failed'
       setError(msg)
       return null
     }

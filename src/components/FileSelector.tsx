@@ -47,8 +47,8 @@ export function FileSelector({ onFilesSelect, disabled }: Props) {
     width: '100%',
     minHeight: '200px',
     borderRadius: '16px',
-    border: `2px dashed ${disabled ? '#d4d4d8' : isDragging ? '#7B3FF2' : 'rgba(123,63,242,0.5)'}`,
-    background: disabled ? '#f4f4f5' : isDragging ? 'rgba(123,63,242,0.1)' : 'rgba(123,63,242,0.05)',
+    border: `2px dashed ${disabled ? '#404040' : isDragging ? '#7B3FF2' : 'rgba(123,63,242,0.5)'}`,
+    background: disabled ? '#1a1a1a' : isDragging ? 'rgba(123,63,242,0.15)' : 'rgba(123,63,242,0.08)',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.6 : 1,
   }
@@ -63,8 +63,8 @@ export function FileSelector({ onFilesSelect, disabled }: Props) {
     >
       <input type="file" style={{ display: 'none' }} onChange={handleChange} disabled={disabled} multiple />
       <span style={{ fontSize: '48px' }}>📤</span>
-      <span style={{ fontSize: '16px', fontWeight: 500, color: '#3f3f46' }}>Datei hier ablegen oder tippen</span>
-      <span style={{ fontSize: '14px', color: '#71717a', textAlign: 'center' }}>Unterstützt mehrere Dateien (einzeln nacheinander senden)</span>
+      <span style={{ fontSize: '16px', fontWeight: 500, color: '#e4e4e7' }}>Drop file here or tap</span>
+      <span style={{ fontSize: '14px', color: '#a1a1aa', textAlign: 'center' }}>Multiple files supported (sent one after another)</span>
     </label>
   )
 }
