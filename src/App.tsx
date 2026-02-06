@@ -8,7 +8,6 @@ import { LoginButton } from './components/LoginButton'
 import { FileSelector } from './components/FileSelector'
 import { RecipientInput } from './components/RecipientInput'
 import { TransferProgress } from './components/TransferProgress'
-import { IncomingRequest, type IncomingRequestData } from './components/IncomingRequest'
 import { useNostr } from './hooks/useNostr'
 import { useWebRTC } from './hooks/useWebRTC'
 import { KIND_WEBRTC_OFFER, KIND_WEBRTC_ANSWER, npubToHex, hexToNpub } from './utils/nostr'
@@ -44,9 +43,19 @@ function App() {
 
   const [recipientNpub, setRecipientNpub] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [incomingOffers, setIncomingOffers] = useState<IncomingOffer[]>([])
   const [sendError, setSendError] = useState<string | null>(null)
   const answerHandledRef = useRef<string | null>(null)
+  const idleRef = useRef(true)
+  const pendingOffersRef = useRef<IncomingOffer[]>([])
+  const canAcceptRef = state === 'idle' || state === 'done' || state === 'error'
+  useEffect(() => {
+    idleRef.current = canAcceptRef
+  }, [canAcceptRef])
+  useEffect(() => {
+    if (!idleRef.current || pendingOffersRef.current.length === 0) return
+    const offer = pendingOffersRef.current.shift()
+    if (offer) handleAccept(offer)
+  }, [state, handleAccept])
 
   onFileReceived(useCallback((file: Blob, fileName: string) => {
     const url = URL.createObjectURL(file)
@@ -65,6 +74,14 @@ function App() {
         const fileName = event.tags.find((t) => t[0] === 'file-name')?.[1] ?? 'file'
         const fileSize = parseInt(event.tags.find((t) => t[0] === 'file-size')?.[1] ?? '0', 10)
         const senderNpub = hexToNpub(event.pubkey)
+        const offer: IncomingOffer = {
+          eventId: event.id,
+          senderPubkey: event.pubkey,
+          senderNpub,
+          fileName,
+          fileSize,
+          encryptedContent: event.content,
+        }
 
         // Only show notification if permission already granted (requestPermission needs user gesture)
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
@@ -73,24 +90,17 @@ function App() {
           })
         }
 
-        setIncomingOffers((prev) => {
-          if (prev.some((o) => o.eventId === event.id)) return prev
-          return [
-            ...prev,
-            {
-              eventId: event.id,
-              senderPubkey: event.pubkey,
-              senderNpub,
-              fileName,
-              fileSize,
-              encryptedContent: event.content,
-            },
-          ]
-        })
+        if (idleRef.current) {
+          handleAccept(offer)
+        } else {
+          if (!pendingOffersRef.current.some((o) => o.eventId === offer.eventId)) {
+            pendingOffersRef.current.push(offer)
+          }
+        }
       }
     )
     return unsub
-  }, [user?.pubkey, subscribeToEvents])
+  }, [user?.pubkey, subscribeToEvents, handleAccept])
 
   const handleSend = useCallback(async () => {
     if (!user || !selectedFile || !recipientNpub.trim()) {
@@ -170,7 +180,6 @@ function App() {
 
   const handleAccept = useCallback(
     async (offer: IncomingOffer) => {
-      setIncomingOffers((prev) => prev.filter((o) => o.eventId !== offer.eventId))
       reset()
       try {
         const decrypted = await decryptFromSender(offer.encryptedContent, offer.senderPubkey, secretKeyHex ?? undefined)
@@ -206,18 +215,6 @@ function App() {
     },
     [acceptConnection, publishEvent, receiveFile, reset, secretKeyHex]
   )
-
-  const handleReject = useCallback((offer: IncomingOffer) => {
-    setIncomingOffers((prev) => prev.filter((o) => o.eventId !== offer.eventId))
-  }, [])
-
-  const incomingRequests: IncomingRequestData[] = incomingOffers.map((o) => ({
-    requestEventId: o.eventId,
-    senderPubkey: o.senderPubkey,
-    senderNpub: o.senderNpub,
-    fileName: o.fileName,
-    fileSize: o.fileSize,
-  }))
 
   const baseStyles = { minHeight: '100vh', background: '#0f0f0f', color: '#fafafa', padding: '20px' }
   const mainStyles = { maxWidth: '512px', margin: '0 auto', padding: '64px 16px 32px' }
@@ -293,27 +290,9 @@ function App() {
               </button>
             </section>
 
-            <section style={{ marginTop: '24px' }}>
-              <h2 style={{ fontSize: '14px', fontWeight: 500, color: '#a1a1aa', marginBottom: '8px' }}>📥 Incoming requests</h2>
-              {incomingRequests.length === 0 ? (
-                <div className="rounded-xl border border-dashed p-6 text-center text-sm" style={{ borderColor: '#333', color: '#71717a' }}>
-                  No new requests
-                </div>
-              ) : (
-                <ul className="space-y-3">
-                  {incomingRequests.map((req) => (
-                    <li key={req.requestEventId}>
-                      <IncomingRequest
-                        request={req}
-                        onAccept={() => handleAccept(incomingOffers.find((o) => o.eventId === req.requestEventId)!)}
-                        onReject={() => handleReject(incomingOffers.find((o) => o.eventId === req.requestEventId)!)}
-                        disabled={state === 'receiving' || state === 'connecting'}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            <p style={{ fontSize: '14px', color: '#71717a', marginTop: '24px' }}>
+              📥 Incoming files are accepted automatically and download when ready.
+            </p>
           </>
         )}
       </main>
