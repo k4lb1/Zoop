@@ -6,7 +6,7 @@ import { useState, useCallback, useRef } from 'react'
 import SimplePeer from 'simple-peer'
 
 const CHUNK_SIZE = 64 * 1024 // 64KB
-const CONNECTION_TIMEOUT_MS = 50_000
+const CONNECTION_TIMEOUT_MS = 65_000
 
 const rtcConfig: RTCConfiguration = {
   iceServers: [
@@ -16,8 +16,6 @@ const rtcConfig: RTCConfiguration = {
     { urls: 'turn:freeturn.net:3478', username: 'free', credential: 'free' },
     { urls: 'turns:freeturn.net:5349', username: 'free', credential: 'free' },
   ],
-  // Force relay only: no direct/STUN. Helps behind firewalls that block UDP but allow TLS (e.g. TURNS 5349).
-  iceTransportPolicy: 'relay',
 }
 
 export type TransferState = 'idle' | 'connecting' | 'sending' | 'receiving' | 'done' | 'error'
