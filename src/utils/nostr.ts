@@ -9,6 +9,7 @@ import type { Event, Filter } from 'nostr-tools'
 export const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
   'wss://relay.primal.net',
+  'wss://relay.nostr.band',
 ] as const
 
 /** WebRTC-Offer von Sender an Empfänger */
