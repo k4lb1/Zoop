@@ -83,7 +83,7 @@ function App() {
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e))
         console.error('Receiver WebRTC error:', err)
-        const msg = err.message
+        const msg = err.message?.trim() || err.toString() || 'Connection failed'
         if (/connection timeout|peer connection timeout/i.test(msg)) {
           setSendError(msg)
         } else if (/ice connection failed/i.test(msg)) {
@@ -217,7 +217,7 @@ function App() {
           } catch (e) {
             const err = e instanceof Error ? e : new Error(String(e))
             console.error('Sender WebRTC error:', err)
-            const msg = err.message
+            const msg = err.message?.trim() || err.toString() || 'Connection failed'
             if (/connection timeout|peer connection timeout/i.test(msg)) {
               setSendError(msg)
             } else if (/ice connection failed/i.test(msg)) {
@@ -239,7 +239,7 @@ function App() {
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e))
       console.error('Send flow error:', err)
-      const msg = err.message
+      const msg = err.message?.trim() || err.toString() || 'Connection failed'
       if (/connection timeout|peer connection timeout|no response/i.test(msg)) {
         setSendError(msg)
       } else if (/ice connection failed/i.test(msg)) {
@@ -303,7 +303,7 @@ function App() {
                 </p>
               )}
               {(sendError || transferError) && (
-                <p className="text-sm" style={{ color: '#ef4444' }}>{sendError ?? transferError}</p>
+                <p className="text-sm" style={{ color: '#ef4444' }}>{sendError || transferError || 'Something went wrong.'}</p>
               )}
               <TransferProgress
                 progress={progress}
