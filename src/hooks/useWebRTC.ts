@@ -1,12 +1,12 @@
 /**
- * useWebRTC – simple-peer, STUN, DataChannel, 64KB Chunks, Timeout 30s
+ * useWebRTC – simple-peer, STUN/TURN, DataChannel, 64KB Chunks, setup timeout 50s
  */
 
 import { useState, useCallback, useRef } from 'react'
 import SimplePeer from 'simple-peer'
 
 const CHUNK_SIZE = 64 * 1024 // 64KB
-const CONNECTION_TIMEOUT_MS = 30_000
+const CONNECTION_TIMEOUT_MS = 50_000
 
 const rtcConfig: RTCConfiguration = {
   iceServers: [
@@ -100,7 +100,7 @@ export function useWebRTC(): UseWebRTCReturn {
       peer.on('error', fail)
       const t = setTimeout(() => {
         peer.destroy()
-        fail(new Error('Connection timeout (30s)'))
+        fail(new Error('Connection setup timeout. TURN relay may be blocked – try another network or disable VPN.'))
       }, CONNECTION_TIMEOUT_MS)
     })
   }, [])
@@ -136,7 +136,7 @@ export function useWebRTC(): UseWebRTCReturn {
       peer.on('error', fail)
       const t = setTimeout(() => {
         peer.destroy()
-        fail(new Error('Connection timeout (30s)'))
+        fail(new Error('Connection setup timeout. TURN relay may be blocked – try another network or disable VPN.'))
       }, CONNECTION_TIMEOUT_MS)
     })
   }, [])
