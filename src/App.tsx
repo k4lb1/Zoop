@@ -68,8 +68,8 @@ function App() {
         })
         await new Promise<void>((resolve, reject) => {
           const t = setTimeout(() => {
-            reject(new Error('Connection timeout. Either the sender didn’t get the answer (try same relays) or the WebRTC connection failed (try another network / disable VPN).'))
-          }, 45_000)
+            reject(new Error('Connection timeout. If the sender sees "ICE connection failed", the problem is on the sender’s network (try another network / disable VPN there). Otherwise check relays.'))
+          }, 60_000)
           peer.on('connect', () => {
             clearTimeout(t)
             resolve()
