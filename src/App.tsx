@@ -24,7 +24,7 @@ export type IncomingOffer = {
 }
 
 function App() {
-  const { user, error, secretKeyHex, login, loginWithNsec, logout, isExtensionAvailable, publishEvent, subscribeToEvents } = useNostr()
+  const { user, error, secretKeyHex, login, loginWithNsec, logout, isExtensionAvailable, relayStatus, publishEvent, subscribeToEvents } = useNostr()
   const {
     progress,
     state,
@@ -242,7 +242,7 @@ function App() {
         />
       </header>
 
-      <main className="max-w-lg mx-auto px-4 pt-16 pb-8 space-y-8" style={mainStyles}>
+      <main className="max-w-lg mx-auto px-4 pt-16 pb-8 space-y-8" style={{ ...mainStyles, ...(user && relayStatus.length > 0 ? { paddingBottom: 48 } : {}) }}>
         <div className="text-center" style={{ textAlign: 'center' }}>
           <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '24px', fontWeight: 'bold', color: '#7B3FF2' }}>
             ⚡ Zoop
@@ -305,6 +305,41 @@ function App() {
             </p>
           </>
         )}
+
+      {user && relayStatus.length > 0 && (
+        <footer
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '8px 12px',
+            background: '#1a1a1a',
+            borderTop: '1px solid #333',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '12px',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            color: '#a1a1aa',
+            zIndex: 5,
+          }}
+        >
+          {relayStatus.map((r) => {
+            const host = r.url.replace(/^wss:\/\//, '').replace(/^ws:\/\//, '').split('/')[0]
+            return (
+              <span key={r.url} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} title={r.url}>
+                <span>{r.status === 'connected' ? '🟢' : '🔴'}</span>
+                <span>{host}</span>
+                <span style={{ color: r.status === 'connected' ? '#86efac' : '#f87171' }}>
+                  {r.status === 'connected' && r.latencyMs != null ? `${r.latencyMs} ms` : r.status === 'failed' ? 'failed' : '—'}
+                </span>
+              </span>
+            )
+          })}
+        </footer>
+      )}
       </main>
     </div>
   )

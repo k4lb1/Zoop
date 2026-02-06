@@ -2,7 +2,7 @@
  * useNostr – NIP-07 (Extension) oder nsec-Login, Relays, publishEvent, subscribeToEvents
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { nip19, Relay, getPublicKey, finalizeEvent } from 'nostr-tools'
 import { utils as nostrUtils } from 'nostr-tools'
 import type { EventTemplate, VerifiedEvent } from 'nostr-tools'
@@ -24,6 +24,12 @@ export type NostrUser = {
   npub: string
 }
 
+export type RelayStatusItem = {
+  url: string
+  status: 'connected' | 'failed'
+  latencyMs: number | null
+}
+
 export type UseNostrReturn = {
   user: NostrUser | null
   error: string | null
@@ -34,6 +40,7 @@ export type UseNostrReturn = {
   logout: () => void
   isExtensionAvailable: boolean
   relays: Relay[]
+  relayStatus: RelayStatusItem[]
   publishEvent: (event: EventTemplate) => Promise<VerifiedEvent | null>
   subscribeToEvents: (filter: { kinds?: number[]; '#p'?: string[]; '#e'?: string[]; since?: number }, onEvent: (event: VerifiedEvent) => void) => () => void
 }
@@ -46,6 +53,7 @@ export function useNostr(): UseNostrReturn {
   const secretKeyRef = useRef<string | null>(null)
   const relaysRef = useRef<Relay[]>([])
   const [relays, setRelays] = useState<Relay[]>([])
+  const [relayStatus, setRelayStatus] = useState<RelayStatusItem[]>([])
 
   const isExtensionAvailable = typeof window !== 'undefined' && !!window.nostr
 
@@ -104,23 +112,33 @@ export function useNostr(): UseNostrReturn {
     })
     relaysRef.current = []
     setRelays([])
+    setRelayStatus([])
   }, [])
 
   const ensureRelays = useCallback(async (): Promise<Relay[]> => {
     if (relaysRef.current.length > 0) return relaysRef.current
     const connected: Relay[] = []
+    const status: RelayStatusItem[] = []
     for (const url of RELAY_URLS) {
+      const start = Date.now()
       try {
         const relay = await Relay.connect(url)
         connected.push(relay)
+        status.push({ url, status: 'connected', latencyMs: Date.now() - start })
       } catch (err) {
         console.warn(`Relay ${url} failed:`, err)
+        status.push({ url, status: 'failed', latencyMs: null })
       }
     }
     relaysRef.current = connected
     setRelays(connected)
+    setRelayStatus(status)
     return connected
   }, [])
+
+  useEffect(() => {
+    if (user?.pubkey) ensureRelays()
+  }, [user?.pubkey, ensureRelays])
 
   const publishEvent = useCallback(async (event: EventTemplate): Promise<VerifiedEvent | null> => {
     const secretHex = secretKeyRef.current
@@ -197,6 +215,7 @@ export function useNostr(): UseNostrReturn {
     logout,
     isExtensionAvailable,
     relays,
+    relayStatus,
     publishEvent,
     subscribeToEvents,
   }
