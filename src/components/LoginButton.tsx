@@ -38,12 +38,24 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
     }
   }
 
+  const copyNpub = useCallback(async () => {
+    if (!user) return
+    try {
+      await navigator.clipboard.writeText(user.npub)
+    } catch {
+      /* ignore */
+    }
+  }, [user])
+
   if (user) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ fontSize: '14px', color: darkMuted, maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={user.npub}>
           {user.npub.slice(0, 10)}…{user.npub.slice(-8)}
         </span>
+        <button type="button" onClick={copyNpub} style={{ ...btn, color: darkMuted, background: 'transparent', border: `1px solid ${darkBorder}`, fontSize: '12px' }} title="Copy npub">
+          Copy npub
+        </button>
         <button type="button" onClick={onLogout} style={{ ...btn, color: '#e4e4e7', background: '#27272a' }}>
           Log out
         </button>
