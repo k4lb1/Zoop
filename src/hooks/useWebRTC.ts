@@ -16,6 +16,8 @@ const rtcConfig: RTCConfiguration = {
     { urls: 'turn:freeturn.net:3478', username: 'free', credential: 'free' },
     { urls: 'turns:freeturn.net:5349', username: 'free', credential: 'free' },
   ],
+  // Force relay only: no direct/STUN. Helps behind firewalls that block UDP but allow TLS (e.g. TURNS 5349).
+  iceTransportPolicy: 'relay',
 }
 
 export type TransferState = 'idle' | 'connecting' | 'sending' | 'receiving' | 'done' | 'error'
