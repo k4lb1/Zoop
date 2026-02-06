@@ -81,7 +81,9 @@ function App() {
         })
         await receiveFile(peer, offer.fileName, offer.fileSize)
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Accept failed'
+        const err = e instanceof Error ? e : new Error(String(e))
+        console.error('Receiver WebRTC error:', err)
+        const msg = err.message
         setSendError(/ice connection failed/i.test(msg) ? `${msg} Try another network or disable VPN/firewall.` : msg)
       }
     },
@@ -207,7 +209,9 @@ function App() {
             })
             await sendFile(peer, selectedFile)
           } catch (e) {
-            const msg = e instanceof Error ? e.message : 'Connection failed'
+            const err = e instanceof Error ? e : new Error(String(e))
+            console.error('Sender WebRTC error:', err)
+            const msg = err.message
             setSendError(/ice connection failed/i.test(msg) ? `${msg} Try another network or disable VPN/firewall.` : msg)
             reset()
           }
@@ -221,7 +225,9 @@ function App() {
         }
       }, 35_000)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'WebRTC or connection failed.'
+      const err = e instanceof Error ? e : new Error(String(e))
+      console.error('Send flow error:', err)
+      const msg = err.message
       setSendError(/ice connection failed/i.test(msg) ? `${msg} Try another network or disable VPN/firewall.` : msg)
     }
   }, [user, selectedFile, recipientNpub, secretKeyHex, initiateConnection, publishEvent, subscribeToEvents, sendFile, reset])
