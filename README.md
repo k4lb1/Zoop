@@ -40,6 +40,7 @@
 
 - **Browser** with a Nostr extension (NIP-07), e.g. [Alby](https://getalby.com) or [nos2x](https://github.com/fiatjaf/nos2x)
 - **NIP-44** support in the extension is recommended (for encrypted signaling)
+- **Network:** WebRTC uses STUN + a free [TURN](https://freeturn.net) fallback. If you get "ICE connection failed", try another network (e.g. mobile hotspot) or disable VPN/firewall; direct P2P works best on open networks.
 
 ---
 
@@ -98,7 +99,7 @@ Zoop/
 | Situation            | Behavior |
 |----------------------|----------|
 | No Nostr extension   | Message in UI, Connect button disabled |
-| WebRTC failed       | Error message, state set to "error" |
+| WebRTC / ICE failed  | Error message + hint to try another network or disable VPN/firewall. A free TURN relay is used as fallback when direct P2P fails. |
 | Recipient offline    | 30 second timeout, then error message |
 | Connection setup     | 30 s timeout for offer/answer |
 
