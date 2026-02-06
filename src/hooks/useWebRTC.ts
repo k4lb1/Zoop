@@ -13,8 +13,8 @@ const rtcConfig: RTCConfiguration = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun.stunprotocol.org:3478' },
-    // TURN disabled for now – Safari often stalls when TURN is in the list (same network works with STUN only).
-    // Re-enable for cross-network if needed: turn:freeturn.net:3478, turns:freeturn.net:5349
+    { urls: 'turn:freeturn.net:3478' },
+    { urls: 'turns:freeturn.net:5349' },
   ],
 }
 
