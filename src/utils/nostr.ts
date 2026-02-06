@@ -6,11 +6,7 @@
 import { nip19, Relay } from 'nostr-tools'
 import type { Event, Filter } from 'nostr-tools'
 
-export const DEFAULT_RELAYS = [
-  'wss://relay.damus.io',
-  'wss://relay.primal.net',
-  'wss://relay.nostr.band',
-] as const
+export const DEFAULT_RELAYS = ['wss://nos.lol'] as const
 
 /** WebRTC-Offer von Sender an Empfänger */
 export const KIND_WEBRTC_OFFER = 30333
