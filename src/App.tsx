@@ -68,6 +68,11 @@ function App() {
         })
         await new Promise<void>((resolve, reject) => {
           const t = setTimeout(() => {
+            try {
+              peer.destroy()
+            } catch {
+              /* ignore */
+            }
             reject(new Error('Receiver: WebRTC connection did not establish within 60s. Try two different devices or another network. Check console (F12) for details.'))
           }, 60_000)
           peer.on('connect', () => {
@@ -76,6 +81,11 @@ function App() {
           })
           peer.on('error', (err) => {
             clearTimeout(t)
+            try {
+              peer.destroy()
+            } catch {
+              /* ignore */
+            }
             reject(err)
           })
         })
@@ -204,6 +214,11 @@ function App() {
             peer.signal(answer)
             await new Promise<void>((resolve, reject) => {
               const t = setTimeout(() => {
+                try {
+                  peer.destroy()
+                } catch {
+                  /* ignore */
+                }
                 reject(new Error('Sender: WebRTC did not connect within 45s (answer was received). Try two different devices or another network. Check console (F12) for details.'))
               }, 45_000)
               peer.on('connect', () => {
@@ -212,6 +227,11 @@ function App() {
               })
               peer.on('error', (err) => {
                 clearTimeout(t)
+                try {
+                  peer.destroy()
+                } catch {
+                  /* ignore */
+                }
                 reject(err)
               })
             })
