@@ -68,7 +68,7 @@ function App() {
         })
         await new Promise<void>((resolve, reject) => {
           const t = setTimeout(() => {
-            reject(new Error('Connection timeout. If the sender sees "ICE connection failed", the problem is on the sender’s network (try another network / disable VPN there). Otherwise check relays.'))
+            reject(new Error('Receiver: WebRTC connection did not establish within 60s. Try two different devices or another network. Check console (F12) for details.'))
           }, 60_000)
           peer.on('connect', () => {
             clearTimeout(t)
@@ -84,7 +84,13 @@ function App() {
         const err = e instanceof Error ? e : new Error(String(e))
         console.error('Receiver WebRTC error:', err)
         const msg = err.message
-        setSendError(/ice connection failed/i.test(msg) ? `${msg} Try another network or disable VPN/firewall.` : msg)
+        if (/connection timeout|peer connection timeout/i.test(msg)) {
+          setSendError(msg)
+        } else if (/ice connection failed/i.test(msg)) {
+          setSendError(`${msg} Try another network or disable VPN/firewall.`)
+        } else {
+          setSendError(msg)
+        }
       }
     },
     [acceptConnection, publishEvent, receiveFile, reset, secretKeyHex]
@@ -196,7 +202,7 @@ function App() {
             peer.signal(answer)
             await new Promise<void>((resolve, reject) => {
               const t = setTimeout(() => {
-                reject(new Error('Peer connection timeout. Recipient may not have received the offer.'))
+                reject(new Error('Sender: WebRTC did not connect within 45s (answer was received). Try two different devices or another network. Check console (F12) for details.'))
               }, 45_000)
               peer.on('connect', () => {
                 clearTimeout(t)
@@ -212,7 +218,13 @@ function App() {
             const err = e instanceof Error ? e : new Error(String(e))
             console.error('Sender WebRTC error:', err)
             const msg = err.message
-            setSendError(/ice connection failed/i.test(msg) ? `${msg} Try another network or disable VPN/firewall.` : msg)
+            if (/connection timeout|peer connection timeout/i.test(msg)) {
+              setSendError(msg)
+            } else if (/ice connection failed/i.test(msg)) {
+              setSendError(`${msg} Try another network or disable VPN/firewall.`)
+            } else {
+              setSendError(msg)
+            }
             reset()
           }
         }
@@ -220,7 +232,7 @@ function App() {
       setTimeout(() => {
         unsub()
         if (answerHandledRef.current !== offerId) {
-          setSendError('No response from recipient (timeout).')
+          setSendError('Sender: No answer from recipient within 35s. Check Nostr relay or that the recipient is online.')
           reset()
         }
       }, 35_000)
@@ -228,7 +240,13 @@ function App() {
       const err = e instanceof Error ? e : new Error(String(e))
       console.error('Send flow error:', err)
       const msg = err.message
-      setSendError(/ice connection failed/i.test(msg) ? `${msg} Try another network or disable VPN/firewall.` : msg)
+      if (/connection timeout|peer connection timeout|no response/i.test(msg)) {
+        setSendError(msg)
+      } else if (/ice connection failed/i.test(msg)) {
+        setSendError(`${msg} Try another network or disable VPN/firewall.`)
+      } else {
+        setSendError(msg)
+      }
     }
   }, [user, selectedFile, recipientNpub, secretKeyHex, initiateConnection, publishEvent, subscribeToEvents, sendFile, reset])
 
@@ -254,7 +272,7 @@ function App() {
             ⚡ Zoop
           </h1>
           <p className="text-sm mt-1" style={{ fontSize: '14px', color: '#a1a1aa', marginTop: '4px' }}>
-            P2P files over Nostr – no sign-up
+            P2P files over Nostr
           </p>
         </div>
 
