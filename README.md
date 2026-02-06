@@ -59,6 +59,8 @@ npm run dev
 
 Then open **http://localhost:5173** in your browser (or the port shown, e.g. 5174).
 
+**Live (GitHub Pages):** https://k4lb1.github.io/Zoop/
+
 ---
 
 ## Build & preview
@@ -108,4 +110,4 @@ MIT
 
 ---
 
-**100% Vibecode** – i dont know what iam doing · Zoop – P2P file sharing over Nostr
+**100% Vibecode** · Zoop – P2P file sharing over Nostr
