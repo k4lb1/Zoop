@@ -28,8 +28,11 @@ const rtcConfig: RTCConfiguration = {
 
 export type TransferState = 'idle' | 'connecting' | 'sending' | 'receiving' | 'done' | 'error'
 
-/** Offer/Answer oder ICE-Kandidat (Trickle) */
-export type SignalData = RTCSessionDescriptionInit | { candidate: RTCIceCandidateInit }
+/** Offer/Answer oder ICE-Kandidat (Trickle); Format wie simple-peer signal() */
+export type SignalData =
+  | RTCSessionDescriptionInit
+  | { type: 'candidate'; candidate: RTCIceCandidateInit }
+  | { candidate: RTCIceCandidateInit }
 
 export type UseWebRTCReturn = {
   progress: number
@@ -81,7 +84,12 @@ export function useWebRTC(): UseWebRTCReturn {
 
   const handleSignal = useCallback((peer: SimplePeer.Instance, signal: SignalData) => {
     try {
-      peer.signal(signal)
+      const data =
+        'candidate' in signal && signal.candidate && !('type' in signal && signal.type === 'candidate')
+          ? { type: 'candidate' as const, candidate: signal.candidate }
+          : signal
+      // simple-peer accepts RTCIceCandidateInit at runtime; @types/simple-peer expects RTCIceCandidate
+      peer.signal(data as Parameters<SimplePeer.Instance['signal']>[0])
     } catch (err) {
       console.error('Error handling signal:', err)
     }
