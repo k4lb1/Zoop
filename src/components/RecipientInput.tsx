@@ -1,5 +1,5 @@
 /**
- * Empfänger-Eingabe (npub)
+ * Empfänger-Input (npub) – ohne lucide-react
  */
 
 type Props = {
@@ -17,8 +17,17 @@ export function RecipientInput({ value, onChange, placeholder = 'npub1…', disa
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition disabled:opacity-50"
       spellCheck={false}
+      style={{
+        width: '100%',
+        padding: '12px 16px',
+        fontSize: '16px',
+        borderRadius: '12px',
+        border: '1px solid #d4d4d8',
+        background: '#fff',
+        color: '#18181b',
+        boxSizing: 'border-box',
+      }}
     />
   )
 }

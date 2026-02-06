@@ -1,39 +1,45 @@
 /**
  * Nostr-Hilfsfunktionen für Zoop
- * Relays, Event-Typen, Publishing
+ * Relays, Custom Event Kinds 30333/30334 für WebRTC-Signaling
  */
 
 import { nip19, Relay } from 'nostr-tools'
-import type { Event } from 'nostr-tools'
+import type { Event, Filter } from 'nostr-tools'
 
 export const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
-  'wss://relay.nostr.info',
-  'wss://nos.lol',
+  'wss://relay.primal.net',
 ] as const
 
-export const KIND_FILE_OFFER = 22242
-export const KIND_FILE_ANSWER = 22243
-export const KIND_FILE_META = 22244
+/** WebRTC-Offer von Sender an Empfänger */
+export const KIND_WEBRTC_OFFER = 30333
+/** WebRTC-Answer von Empfänger zurück an Sender */
+export const KIND_WEBRTC_ANSWER = 30334
 
-export type NostrFileOfferPayload = {
-  type: 'offer'
-  offer: RTCSessionDescriptionInit
-  fileName: string
-  fileSize: number
-  fileType?: string
+export type WebrtcOfferEventStructure = {
+  kind: typeof KIND_WEBRTC_OFFER
+  content: string // verschlüsselter WebRTC-Offer (NIP-44)
+  tags: [
+    ['p', string],       // recipient pubkey
+    ['file-name', string],
+    ['file-size', string],
+    ...string[][]
+  ]
 }
 
-export type NostrFileAnswerPayload = {
-  type: 'answer'
-  answer: RTCSessionDescriptionInit
-  requestEventId: string
+export type WebrtcAnswerEventStructure = {
+  kind: typeof KIND_WEBRTC_ANSWER
+  content: string // verschlüsselter WebRTC-Answer (NIP-44)
+  tags: [
+    ['p', string],   // sender pubkey (Antwort an)
+    ['e', string],   // request event id
+    ...string[][]
+  ]
 }
 
 export function parseNostrEvent(event: Event): unknown {
   try {
-    const content = event.content
-    return JSON.parse(content) as unknown
+    return JSON.parse(event.content) as unknown
   } catch {
     return null
   }
@@ -61,3 +67,5 @@ export function npubToHex(npub: string): string {
 export function hexToNpub(hex: string): string {
   return nip19.npubEncode(hex)
 }
+
+export type { Event, Filter, Relay }

@@ -1,9 +1,10 @@
 /**
- * Eingehende Datei-Anfrage (Anzeige + Akzeptieren/Ablehnen)
+ * Eingehende Datei-Anfrage – Annehmen / Ablehnen (ohne lucide-react)
  */
 
-type IncomingRequestData = {
+export type IncomingRequestData = {
   requestEventId: string
+  senderPubkey: string
   senderNpub: string
   fileName: string
   fileSize: number
@@ -23,33 +24,19 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+const btn = { padding: '10px 12px', fontSize: '14px', fontWeight: 500, border: 'none', borderRadius: '8px', cursor: 'pointer' as const, flex: 1 }
+
 export function IncomingRequest({ request, onAccept, onReject, disabled }: Props) {
   return (
-    <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-3">
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        <span className="font-medium text-gray-800 dark:text-gray-200">{request.fileName}</span>
-        {' '}({formatSize(request.fileSize)})
-      </p>
-      <p className="text-xs text-gray-500 dark:text-gray-500 truncate" title={request.senderNpub}>
-        Von: {request.senderNpub.slice(0, 16)}…
-      </p>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={onAccept}
-          disabled={disabled}
-          className="flex-1 px-3 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:opacity-50 transition"
-        >
-          Annehmen
-        </button>
-        <button
-          type="button"
-          onClick={onReject}
-          disabled={disabled}
-          className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition"
-        >
-          Ablehnen
-        </button>
+    <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #e4e4e7', background: '#fafafa', marginBottom: '12px' }}>
+      <div style={{ marginBottom: '12px' }}>
+        <p style={{ fontWeight: 500, color: '#18181b', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{request.fileName}</p>
+        <p style={{ fontSize: '14px', color: '#71717a', margin: '4px 0 0 0' }}>{formatSize(request.fileSize)}</p>
+        <p style={{ fontSize: '12px', color: '#a1a1aa', margin: '4px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={request.senderNpub}>Von: {request.senderNpub.slice(0, 14)}…</p>
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button type="button" onClick={onAccept} disabled={disabled} style={{ ...btn, color: '#fff', background: '#7B3FF2', opacity: disabled ? 0.5 : 1 }}>Annehmen</button>
+        <button type="button" onClick={onReject} disabled={disabled} style={{ ...btn, color: '#3f3f46', background: '#e4e4e7', opacity: disabled ? 0.5 : 1 }}>Ablehnen</button>
       </div>
     </div>
   )

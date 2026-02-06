@@ -10,20 +10,23 @@
   },
   "dependencies": {
     "@noble/secp256k1": "^2.0.0",
+    "events": "^3.3.0",
+    "lucide-react": "^0.460.0",
     "nostr-tools": "^2.6.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "simple-peer": "^9.11.1"
+    "simple-peer": "^9.11.1",
+    "util": "^0.12.5"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
-    "@types/simple-peer": "^9.11.8",
     "@types/react-dom": "^18.3.1",
+    "@types/simple-peer": "^9.11.8",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "~5.6.2",
-    "vite": "^5.4.10"
+    "vite": "^7.3.1"
   }
 }

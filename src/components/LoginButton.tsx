@@ -1,29 +1,40 @@
 /**
- * Login-Button für Nostr NIP-07 (Browser-Extension)
+ * LoginButton – Extension (Connect with Nostr) oder nsec eingeben
  */
 
+import { useState } from 'react'
 import type { NostrUser } from '../hooks/useNostr'
 
 type Props = {
   user: NostrUser | null
   error: string | null
   onLogin: () => void
+  onLoginWithNsec: (nsec: string) => void
   onLogout: () => void
   isExtensionAvailable: boolean
 }
 
-export function LoginButton({ user, error, onLogin, onLogout, isExtensionAvailable }: Props) {
+const btn = { padding: '10px 16px', fontSize: '14px', fontWeight: 500, border: 'none', borderRadius: '12px', cursor: 'pointer' as const }
+
+export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, isExtensionAvailable }: Props) {
+  const [nsecInput, setNsecInput] = useState('')
+  const [showNsec, setShowNsec] = useState(false)
+
+  const handleNsecSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (nsecInput.trim()) {
+      onLoginWithNsec(nsecInput.trim())
+      setNsecInput('')
+    }
+  }
+
   if (user) {
     return (
-      <div className="flex flex-col items-center gap-2">
-        <span className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[200px]" title={user.npub}>
-          {user.npub.slice(0, 12)}…{user.npub.slice(-8)}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '14px', color: '#71717a', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={user.npub}>
+          {user.npub.slice(0, 10)}…{user.npub.slice(-8)}
         </span>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-        >
+        <button type="button" onClick={onLogout} style={{ ...btn, color: '#3f3f46', background: '#f4f4f5' }}>
           Abmelden
         </button>
       </div>
@@ -31,21 +42,49 @@ export function LoginButton({ user, error, onLogin, onLogout, isExtensionAvailab
   }
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
       {!isExtensionAvailable && (
-        <p className="text-sm text-amber-600 dark:text-amber-400">
-          Nostr-Extension (Alby/nos2x) installieren, dann Seite neu laden.
+        <p style={{ fontSize: '12px', color: '#b45309', maxWidth: '260px', textAlign: 'right' }}>
+          Keine Nostr-Extension – nutze unten „Mit nsec anmelden“ oder installiere Alby/nos2x.
         </p>
       )}
-      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       <button
         type="button"
         onClick={onLogin}
         disabled={!isExtensionAvailable}
-        className="px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        style={{ ...btn, color: '#fff', background: '#7B3FF2', opacity: isExtensionAvailable ? 1 : 0.5 }}
       >
-        Mit Nostr anmelden
+        Connect with Nostr (Extension)
       </button>
+
+      <button
+        type="button"
+        onClick={() => setShowNsec((s) => !s)}
+        style={{ ...btn, color: '#71717a', background: 'transparent', border: '1px solid #d4d4d8', fontSize: '12px' }}
+      >
+        {showNsec ? 'nsec ausblenden' : 'Mit nsec anmelden'}
+      </button>
+
+      {showNsec && (
+        <form onSubmit={handleNsecSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', maxWidth: '260px' }}>
+          <input
+            type="password"
+            value={nsecInput}
+            onChange={(e) => setNsecInput(e.target.value)}
+            placeholder="nsec1…"
+            autoComplete="off"
+            style={{ width: '100%', padding: '8px 12px', fontSize: '13px', borderRadius: '8px', border: '1px solid #d4d4d8', boxSizing: 'border-box' }}
+          />
+          <button type="submit" style={{ ...btn, color: '#fff', background: '#7B3FF2', fontSize: '13px' }}>
+            Mit nsec anmelden
+          </button>
+          <p style={{ fontSize: '11px', color: '#a1a1aa', margin: 0 }}>
+            Nur auf vertrauenswürdigen Seiten nutzen. nsec wird nicht gespeichert.
+          </p>
+        </form>
+      )}
+
+      {error && <p style={{ fontSize: '12px', color: '#dc2626', maxWidth: '260px', textAlign: 'right' }}>{error}</p>}
     </div>
   )
 }

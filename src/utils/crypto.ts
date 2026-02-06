@@ -1,25 +1,33 @@
 /**
- * NIP-44 kompatible Verschlüsselung für WebRTC-Signaling
- * Sender/Empfänger können Offer/Answer nur mit eigenem Schlüssel lesen.
+ * NIP-44 Verschlüsselung für WebRTC-Offer/Answer
+ * Nutzt Extension (window.nostr.nip44Encrypt/Decrypt) falls vorhanden, sonst nostr-tools mit Secret Key.
  */
 
 import { nip44, utils as nostrUtils } from 'nostr-tools'
 
-export function encryptForReceiver(
+export async function encryptForReceiver(
   plaintext: string,
-  senderSecretKeyHex: string,
-  receiverPublicKeyHex: string
-): string {
+  receiverPublicKeyHex: string,
+  senderSecretKeyHex?: string
+): Promise<string> {
+  if (typeof window !== 'undefined' && window.nostr?.nip44Encrypt) {
+    return window.nostr.nip44Encrypt(receiverPublicKeyHex, plaintext)
+  }
+  if (!senderSecretKeyHex) throw new Error('NIP-44: Sender-Secret oder Extension nötig')
   const senderSecret = nostrUtils.hexToBytes(senderSecretKeyHex)
   const conversationKey = nip44.v2.utils.getConversationKey(senderSecret, receiverPublicKeyHex)
   return nip44.v2.encrypt(plaintext, conversationKey)
 }
 
-export function decryptFromSender(
+export async function decryptFromSender(
   ciphertext: string,
-  receiverSecretKeyHex: string,
-  senderPublicKeyHex: string
-): string {
+  senderPublicKeyHex: string,
+  receiverSecretKeyHex?: string
+): Promise<string> {
+  if (typeof window !== 'undefined' && window.nostr?.nip44Decrypt) {
+    return window.nostr.nip44Decrypt(senderPublicKeyHex, ciphertext)
+  }
+  if (!receiverSecretKeyHex) throw new Error('NIP-44: Empfänger-Secret oder Extension nötig')
   const receiverSecret = nostrUtils.hexToBytes(receiverSecretKeyHex)
   const conversationKey = nip44.v2.utils.getConversationKey(receiverSecret, senderPublicKeyHex)
   return nip44.v2.decrypt(ciphertext, conversationKey)

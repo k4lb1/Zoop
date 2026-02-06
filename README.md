@@ -1,52 +1,111 @@
-# Zoop
+# ⚡ Zoop
 
-P2P File-Sharing über Nostr – wie Blip, aber auf Nostr-Basis. Keine Registrierung, nur Nostr-Extension (z. B. Alby/nos2x).
+**P2P file sharing over Nostr** – send files directly from browser to browser, no server in the middle. No sign-up, just a Nostr extension (e.g. Alby or nos2x).
 
-## Tech-Stack
+> **100% Vibecode** – i dont know what iam doing
 
-- **Frontend:** React + Vite + TypeScript
-- **Styling:** Tailwind CSS
-- **Nostr:** nostr-tools
-- **P2P:** simple-peer (WebRTC)
-- **Verschlüsselung:** NIP-44 (nostr-tools) für Signaling
+---
 
-## Entwicklung
+## Features
+
+- **Nostr login** (NIP-07) – connect via browser extension only
+- **WebRTC P2P** – files go directly between two browsers (no server sees the file)
+- **NIP-44** – WebRTC offer/answer encrypted over Nostr relays
+- **Custom event kinds** (30333 Offer, 30334 Answer) for signaling
+- **Drag & drop** – multiple files, progress with MB/s and ETA
+- **64 KB chunks** – large files, chunk-based progress tracking
+- **Browser notifications** – alert when a new file arrives
+- **Mobile-friendly** – touch-friendly buttons, responsive layout
+
+---
+
+## Screenshot
+
+---
+
+
+## Tech stack
+
+| Area           | Technology |
+|----------------|------------|
+| Frontend       | React 18, Vite, TypeScript |
+| Styling        | Tailwind CSS + inline styles (fallback) |
+| Nostr          | [nostr-tools](https://github.com/nostr-dev-kit/nostr-tools) |
+| P2P            | [simple-peer](https://github.com/feross/simple-peer) (WebRTC) |
+| Encryption     | NIP-44 (nostr-tools) |
+
+---
+
+## Requirements
+
+- **Browser** with a Nostr extension (NIP-07), e.g. [Alby](https://getalby.com) or [nos2x](https://github.com/fiatjaf/nos2x)
+- **NIP-44** support in the extension is recommended (for encrypted signaling)
+
+---
+
+## Install & run
 
 ```bash
+# Clone the repo
+git clone https://github.com/k4lb1/Zoop.git
+cd Zoop
+
+# Install dependencies
 npm install
+
+# Start dev server
 npm run dev
 ```
 
-Öffne [http://localhost:5173](http://localhost:5173).
+Then open **http://localhost:5173** in your browser (or the port shown, e.g. 5174).
 
-## Build & Preview
+---
+
+## Build & preview
 
 ```bash
 npm run build
 npm run preview
 ```
 
-## Deployment (GitHub Pages)
+---
 
-1. Repo auf GitHub pushen.
-2. In **Settings → Pages** Source auf **GitHub Actions** (oder **main** / `dist`) setzen.
-3. Für Vite: `vite.config.ts` anpassen, z. B. `base: '/Zoop/'` (Repo-Name).
-
-## Projektstruktur
+## Project structure
 
 ```
-src/
-  components/   # LoginButton, FileSelector, RecipientInput, TransferProgress, IncomingRequest
-  hooks/       # useNostr, useWebRTC
-  utils/       # nostr, webrtc, crypto
-  App.tsx
-  main.tsx
+Zoop/
+├── src/
+│   ├── components/   # LoginButton, FileSelector, RecipientInput, TransferProgress, IncomingRequest
+│   ├── hooks/        # useNostr, useWebRTC
+│   ├── utils/        # nostr, webrtc, crypto
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+├── public/
+├── index.html
+├── package.json
+├── tailwind.config.js
+├── vite.config.ts
+└── README.md
 ```
 
-## Voraussetzungen
+---
 
-- Browser mit Nostr-Extension (NIP-07), z. B. [Alby](https://getalby.com) oder [nos2x](https://github.com/fiatjaf/nos2x).
+## Error handling
 
-## Lizenz
+| Situation            | Behavior |
+|----------------------|----------|
+| No Nostr extension   | Message in UI, Connect button disabled |
+| WebRTC failed       | Error message, state set to "error" |
+| Recipient offline    | 30 second timeout, then error message |
+| Connection setup     | 30 s timeout for offer/answer |
+
+---
+
+## License
 
 MIT
+
+---
+
+**100% Vibecode** – i dont know what iam doing · Zoop – P2P file sharing over Nostr
