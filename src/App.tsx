@@ -48,6 +48,45 @@ function App() {
   const idleRef = useRef(true)
   const pendingOffersRef = useRef<IncomingOffer[]>([])
   const processedOfferIdsRef = useRef<Set<string>>(new Set())
+
+  const handleAccept = useCallback(
+    async (offer: IncomingOffer) => {
+      reset()
+      try {
+        const decrypted = await decryptFromSender(offer.encryptedContent, offer.senderPubkey, secretKeyHex ?? undefined)
+        const webrtcOffer = JSON.parse(decrypted) as RTCSessionDescriptionInit
+        const { peer, answer } = await acceptConnection(webrtcOffer)
+        const encryptedAnswer = await encryptForReceiver(JSON.stringify(answer), offer.senderPubkey, secretKeyHex ?? undefined)
+        await publishEvent({
+          kind: KIND_WEBRTC_ANSWER,
+          content: encryptedAnswer,
+          tags: [
+            ['p', offer.senderPubkey],
+            ['e', offer.eventId],
+          ],
+          created_at: Math.floor(Date.now() / 1000),
+        })
+        await new Promise<void>((resolve, reject) => {
+          const t = setTimeout(() => {
+            reject(new Error('Connection timeout. Sender may not have received the answer (check relays).'))
+          }, 45_000)
+          peer.on('connect', () => {
+            clearTimeout(t)
+            resolve()
+          })
+          peer.on('error', (err) => {
+            clearTimeout(t)
+            reject(err)
+          })
+        })
+        await receiveFile(peer, offer.fileName, offer.fileSize)
+      } catch (e) {
+        setSendError(e instanceof Error ? e.message : 'Accept failed')
+      }
+    },
+    [acceptConnection, publishEvent, receiveFile, reset, secretKeyHex]
+  )
+
   const canAcceptRef = state === 'idle' || state === 'done' || state === 'error'
   useEffect(() => {
     idleRef.current = canAcceptRef
@@ -183,44 +222,6 @@ function App() {
       setSendError(e instanceof Error ? e.message : 'WebRTC or connection failed.')
     }
   }, [user, selectedFile, recipientNpub, secretKeyHex, initiateConnection, publishEvent, subscribeToEvents, sendFile, reset])
-
-  const handleAccept = useCallback(
-    async (offer: IncomingOffer) => {
-      reset()
-      try {
-        const decrypted = await decryptFromSender(offer.encryptedContent, offer.senderPubkey, secretKeyHex ?? undefined)
-        const webrtcOffer = JSON.parse(decrypted) as RTCSessionDescriptionInit
-        const { peer, answer } = await acceptConnection(webrtcOffer)
-        const encryptedAnswer = await encryptForReceiver(JSON.stringify(answer), offer.senderPubkey, secretKeyHex ?? undefined)
-        await publishEvent({
-          kind: KIND_WEBRTC_ANSWER,
-          content: encryptedAnswer,
-          tags: [
-            ['p', offer.senderPubkey],
-            ['e', offer.eventId],
-          ],
-          created_at: Math.floor(Date.now() / 1000),
-        })
-        await new Promise<void>((resolve, reject) => {
-          const t = setTimeout(() => {
-            reject(new Error('Connection timeout. Sender may not have received the answer (check relays).'))
-          }, 45_000)
-          peer.on('connect', () => {
-            clearTimeout(t)
-            resolve()
-          })
-          peer.on('error', (err) => {
-            clearTimeout(t)
-            reject(err)
-          })
-        })
-        await receiveFile(peer, offer.fileName, offer.fileSize)
-      } catch (e) {
-        setSendError(e instanceof Error ? e.message : 'Accept failed')
-      }
-    },
-    [acceptConnection, publishEvent, receiveFile, reset, secretKeyHex]
-  )
 
   const baseStyles = { minHeight: '100vh', background: '#0f0f0f', color: '#fafafa', padding: '20px' }
   const mainStyles = { maxWidth: '512px', margin: '0 auto', padding: '64px 16px 32px' }
