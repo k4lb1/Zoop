@@ -190,7 +190,8 @@ export function useNostr(): UseNostrReturn {
           if (closed) break
           const sub = relay.subscribe([fullFilter], {
             onevent: (ev) => {
-              if (!closed) onEvent(ev as VerifiedEvent)
+              if (closed || !ev) return
+              onEvent(ev as VerifiedEvent)
             },
           })
           subs.push({ relay, sub })

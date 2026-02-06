@@ -122,6 +122,7 @@ function App() {
     const unsub = subscribeToEvents(
       { kinds: [KIND_WEBRTC_OFFER], '#p': [user.pubkey] },
       (event: VerifiedEvent) => {
+        if (!event?.content || !event?.pubkey || !Array.isArray(event?.tags)) return
         const fileName = event.tags.find((t) => t[0] === 'file-name')?.[1] ?? 'file'
         const fileSize = parseInt(event.tags.find((t) => t[0] === 'file-size')?.[1] ?? '0', 10)
         const senderNpub = hexToNpub(event.pubkey)
@@ -193,6 +194,7 @@ function App() {
       const unsub = subscribeToEvents(
         { kinds: [KIND_WEBRTC_ANSWER], '#e': [offerId], since },
         async (answerEvent: VerifiedEvent) => {
+          if (!answerEvent?.content || !answerEvent?.pubkey) return
           if (answerHandledRef.current === offerId) return
           answerHandledRef.current = offerId
           unsub()
