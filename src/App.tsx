@@ -46,7 +46,6 @@ function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [incomingOffers, setIncomingOffers] = useState<IncomingOffer[]>([])
   const [sendError, setSendError] = useState<string | null>(null)
-  const [notificationsAsked, setNotificationsAsked] = useState(false)
   const answerHandledRef = useRef<string | null>(null)
 
   onFileReceived(useCallback((file: Blob, fileName: string) => {
@@ -67,31 +66,27 @@ function App() {
         const fileSize = parseInt(event.tags.find((t) => t[0] === 'file-size')?.[1] ?? '0', 10)
         const senderNpub = hexToNpub(event.pubkey)
 
-        // Browser Notification API
-        if (typeof window !== 'undefined' && 'Notification' in window) {
-          if (!notificationsAsked && Notification.permission === 'default') {
-            Notification.requestPermission().finally(() => {
-              setNotificationsAsked(true)
-            })
-          }
-          if (Notification.permission === 'granted') {
-            new Notification('Zoop – new file', {
-              body: `New file from ${senderNpub.slice(0, 16)}… (${fileName})`,
-            })
-          }
+        // Only show notification if permission already granted (requestPermission needs user gesture)
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('Zoop – new file', {
+            body: `New file from ${senderNpub.slice(0, 16)}… (${fileName})`,
+          })
         }
 
-        setIncomingOffers((prev) => [
-          ...prev,
-          {
-            eventId: event.id,
-            senderPubkey: event.pubkey,
-            senderNpub,
-            fileName,
-            fileSize,
-            encryptedContent: event.content,
-          },
-        ])
+        setIncomingOffers((prev) => {
+          if (prev.some((o) => o.eventId === event.id)) return prev
+          return [
+            ...prev,
+            {
+              eventId: event.id,
+              senderPubkey: event.pubkey,
+              senderNpub,
+              fileName,
+              fileSize,
+              encryptedContent: event.content,
+            },
+          ]
+        })
       }
     )
     return unsub
