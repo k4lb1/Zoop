@@ -47,6 +47,7 @@ function App() {
   const answerHandledRef = useRef<string | null>(null)
   const idleRef = useRef(true)
   const pendingOffersRef = useRef<IncomingOffer[]>([])
+  const processedOfferIdsRef = useRef<Set<string>>(new Set())
   const canAcceptRef = state === 'idle' || state === 'done' || state === 'error'
   useEffect(() => {
     idleRef.current = canAcceptRef
@@ -54,7 +55,9 @@ function App() {
   useEffect(() => {
     if (!idleRef.current || pendingOffersRef.current.length === 0) return
     const offer = pendingOffersRef.current.shift()
-    if (offer) handleAccept(offer)
+    if (!offer || processedOfferIdsRef.current.has(offer.eventId)) return
+    processedOfferIdsRef.current.add(offer.eventId)
+    handleAccept(offer)
   }, [state, handleAccept])
 
   onFileReceived(useCallback((file: Blob, fileName: string) => {
@@ -89,6 +92,9 @@ function App() {
             body: `New file from ${senderNpub.slice(0, 16)}… (${fileName})`,
           })
         }
+
+        if (processedOfferIdsRef.current.has(offer.eventId)) return
+        processedOfferIdsRef.current.add(offer.eventId)
 
         if (idleRef.current) {
           handleAccept(offer)
