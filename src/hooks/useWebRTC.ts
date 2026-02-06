@@ -1,5 +1,5 @@
 /**
- * useWebRTC – simple-peer, STUN/TURN, DataChannel, 64KB Chunks, setup timeout 50s
+ * useWebRTC – simple-peer mit Trickle ICE, STUN/TURN, DataChannel, 64KB Chunks
  */
 
 import { useState, useCallback, useRef } from 'react'
@@ -13,12 +13,23 @@ const rtcConfig: RTCConfiguration = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun.stunprotocol.org:3478' },
-    { urls: 'turn:freeturn.net:3478' },
-    { urls: 'turns:freeturn.net:5349' },
+    {
+      urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'],
+    },
+    {
+      urls: ['turn:freeturn.net:3478', 'turns:freeturn.net:5349'],
+      username: 'free',
+      credential: 'free',
+    },
   ],
+  iceCandidatePoolSize: 10,
+  iceTransportPolicy: 'all',
 }
 
 export type TransferState = 'idle' | 'connecting' | 'sending' | 'receiving' | 'done' | 'error'
+
+/** Offer/Answer oder ICE-Kandidat (Trickle) */
+export type SignalData = RTCSessionDescriptionInit | { candidate: RTCIceCandidateInit }
 
 export type UseWebRTCReturn = {
   progress: number
@@ -28,8 +39,9 @@ export type UseWebRTCReturn = {
   etaSeconds: number | null
   chunkIndex: number
   totalChunks: number
-  initiateConnection: () => Promise<{ peer: SimplePeer.Instance; offer: RTCSessionDescriptionInit }>
-  acceptConnection: (offer: RTCSessionDescriptionInit) => Promise<{ peer: SimplePeer.Instance; answer: RTCSessionDescriptionInit }>
+  initiateConnection: (onSignal: (data: SignalData) => void) => Promise<SimplePeer.Instance>
+  acceptConnection: (offer: RTCSessionDescriptionInit, onSignal: (data: SignalData) => void) => Promise<SimplePeer.Instance>
+  handleSignal: (peer: SimplePeer.Instance, signal: SignalData) => void
   sendFile: (peer: SimplePeer.Instance, file: File) => Promise<void>
   receiveFile: (peer: SimplePeer.Instance, fileName: string, fileSize: number) => Promise<Blob | null>
   onFileReceived: (callback: (file: Blob, fileName: string) => void) => () => void
@@ -67,13 +79,21 @@ export function useWebRTC(): UseWebRTCReturn {
     }
   }, [])
 
-  const initiateConnection = useCallback((): Promise<{ peer: SimplePeer.Instance; offer: RTCSessionDescriptionInit }> => {
+  const handleSignal = useCallback((peer: SimplePeer.Instance, signal: SignalData) => {
+    try {
+      peer.signal(signal)
+    } catch (err) {
+      console.error('Error handling signal:', err)
+    }
+  }, [])
+
+  const initiateConnection = useCallback((onSignal: (data: SignalData) => void): Promise<SimplePeer.Instance> => {
     setError(null)
     setState('connecting')
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const peer = new SimplePeer({
         initiator: true,
-        trickle: false,
+        trickle: true,
         config: rtcConfig,
       })
       let settled = false
@@ -83,61 +103,73 @@ export function useWebRTC(): UseWebRTCReturn {
         clearTimeout(t)
         setState('error')
         setError(err.message)
-        reject(err)
-      }
-      const onSignal = (data: RTCSessionDescriptionInit) => {
-        if (data.type === 'offer') {
-          if (settled) return
-          settled = true
-          clearTimeout(t)
-          peer.removeListener('signal', onSignal)
-          resolve({ peer, offer: data })
+        try {
+          peer.destroy()
+        } catch {
+          /* ignore */
         }
       }
-      peer.on('signal', onSignal)
-      peer.on('error', fail)
+      peer.on('signal', (data: SignalData) => {
+        onSignal(data)
+      })
+      peer.on('connect', () => {
+        clearTimeout(t)
+      })
+      peer.on('error', (err: Error) => fail(err))
+      peer.on('iceStateChange', (iceState: RTCIceConnectionState) => {
+        if (iceState === 'failed' || iceState === 'disconnected') {
+          fail(new Error(`ICE connection ${iceState}. Check firewall/NAT.`))
+        }
+      })
       const t = setTimeout(() => {
-        peer.destroy()
-        fail(new Error('Connection setup timeout. TURN relay may be blocked – try another network or disable VPN.'))
+        fail(new Error('Connection setup timeout. Try another network or check NAT/firewall.'))
       }, CONNECTION_TIMEOUT_MS)
+      resolve(peer)
     })
   }, [])
 
-  const acceptConnection = useCallback((offer: RTCSessionDescriptionInit): Promise<{ peer: SimplePeer.Instance; answer: RTCSessionDescriptionInit }> => {
-    setError(null)
-    setState('connecting')
-    return new Promise((resolve, reject) => {
-      const peer = new SimplePeer({
-        initiator: false,
-        trickle: false,
-        config: rtcConfig,
+  const acceptConnection = useCallback(
+    (offer: RTCSessionDescriptionInit, onSignal: (data: SignalData) => void): Promise<SimplePeer.Instance> => {
+      setError(null)
+      setState('connecting')
+      return new Promise((resolve) => {
+        const peer = new SimplePeer({
+          initiator: false,
+          trickle: true,
+          config: rtcConfig,
+        })
+        peer.signal(offer)
+        let settled = false
+        const fail = (err: Error) => {
+          if (settled) return
+          settled = true
+          clearTimeout(t)
+          setState('error')
+          setError(err.message)
+          try {
+            peer.destroy()
+          } catch {
+            /* ignore */
+          }
+        }
+        peer.on('signal', (data: SignalData) => {
+          onSignal(data)
+        })
+        peer.on('connect', () => clearTimeout(t))
+        peer.on('error', (err: Error) => fail(err))
+        peer.on('iceStateChange', (iceState: RTCIceConnectionState) => {
+          if (iceState === 'failed' || iceState === 'disconnected') {
+            fail(new Error(`ICE connection ${iceState}. Check firewall/NAT.`))
+          }
+        })
+        const t = setTimeout(() => {
+          fail(new Error('Connection setup timeout. Try another network or check NAT/firewall.'))
+        }, CONNECTION_TIMEOUT_MS)
+        resolve(peer)
       })
-      peer.signal(offer)
-      let settled = false
-      const done = (result: { peer: SimplePeer.Instance; answer: RTCSessionDescriptionInit }) => {
-        if (settled) return
-        settled = true
-        clearTimeout(t)
-        resolve(result)
-      }
-      const fail = (err: Error) => {
-        if (settled) return
-        settled = true
-        clearTimeout(t)
-        setState('error')
-        setError(err.message)
-        reject(err)
-      }
-      peer.on('signal', (data: RTCSessionDescriptionInit) => {
-        if (data.type === 'answer') done({ peer, answer: data })
-      })
-      peer.on('error', fail)
-      const t = setTimeout(() => {
-        peer.destroy()
-        fail(new Error('Connection setup timeout. TURN relay may be blocked – try another network or disable VPN.'))
-      }, CONNECTION_TIMEOUT_MS)
-    })
-  }, [])
+    },
+    []
+  )
 
   const sendFile = useCallback(async (peer: SimplePeer.Instance, file: File) => {
     abortRef.current = false
@@ -147,19 +179,25 @@ export function useWebRTC(): UseWebRTCReturn {
     setEtaSeconds(null)
     setChunkIndex(0)
     setTotalChunks(Math.ceil(file.size / CHUNK_SIZE))
-    await new Promise<void>((resolve, reject) => {
-      peer.on('connect', () => {
-        setState('sending')
-        resolve()
+    if (!peer.destroyed && !peer.connected) {
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Connection timeout')), 60_000)
+        peer.on('connect', () => {
+          clearTimeout(timeout)
+          resolve()
+        })
+        peer.on('error', (err) => {
+          clearTimeout(timeout)
+          reject(err)
+        })
       })
-      peer.on('error', reject)
-    })
+    }
     setState('sending')
     startedAtRef.current = performance.now()
     let transferred = 0
     let index = 0
     let offset = 0
-    while (offset < file.size && !abortRef.current) {
+    while (offset < file.size && !abortRef.current && !peer.destroyed) {
       const end = Math.min(offset + CHUNK_SIZE, file.size)
       const chunk = file.slice(offset, end)
       const buf = await chunk.arrayBuffer()
@@ -170,17 +208,12 @@ export function useWebRTC(): UseWebRTCReturn {
       const p = file.size ? (offset / file.size) * 100 : 100
       setProgress(p)
       setChunkIndex(index)
-
       const startedAt = startedAtRef.current
-      if (startedAt != null) {
+      if (startedAt != null && (performance.now() - startedAt) / 1000 > 0) {
         const elapsedSec = (performance.now() - startedAt) / 1000
-        if (elapsedSec > 0) {
-          const bytesPerSec = transferred / elapsedSec
-          const mbps = bytesPerSec / (1024 * 1024)
-          setSpeedMbps(mbps)
-          const remainingBytes = file.size - transferred
-          setEtaSeconds(bytesPerSec > 0 ? remainingBytes / bytesPerSec : null)
-        }
+        const bytesPerSec = transferred / elapsedSec
+        setSpeedMbps(bytesPerSec / (1024 * 1024))
+        setEtaSeconds(bytesPerSec > 0 ? (file.size - transferred) / bytesPerSec : null)
       }
     }
     if (abortRef.current) {
@@ -211,24 +244,21 @@ export function useWebRTC(): UseWebRTCReturn {
         let received = 0
         let index = 0
         peer.on('data', (data: ArrayBuffer | Buffer) => {
-          const buf = data instanceof ArrayBuffer ? data : (data as Buffer).buffer.slice((data as Buffer).byteOffset, (data as Buffer).byteOffset + (data as Buffer).byteLength)
+          const buf =
+            data instanceof ArrayBuffer
+              ? data
+              : (data as Buffer).buffer.slice((data as Buffer).byteOffset, (data as Buffer).byteOffset + (data as Buffer).byteLength)
           chunks.push(buf)
           received += buf.byteLength
           index += 1
-          const p = fileSize ? (received / fileSize) * 100 : 100
-          setProgress(p)
+          setProgress(fileSize ? (received / fileSize) * 100 : 100)
           setChunkIndex(index)
-
           const startedAt = startedAtRef.current
-          if (startedAt != null) {
+          if (startedAt != null && (performance.now() - startedAt) / 1000 > 0) {
             const elapsedSec = (performance.now() - startedAt) / 1000
-            if (elapsedSec > 0) {
-              const bytesPerSec = received / elapsedSec
-              const mbps = bytesPerSec / (1024 * 1024)
-              setSpeedMbps(mbps)
-              const remainingBytes = fileSize - received
-              setEtaSeconds(bytesPerSec > 0 ? remainingBytes / bytesPerSec : null)
-            }
+            const bytesPerSec = received / elapsedSec
+            setSpeedMbps(bytesPerSec / (1024 * 1024))
+            setEtaSeconds(bytesPerSec > 0 ? (fileSize - received) / bytesPerSec : null)
           }
         })
         peer.on('close', () => {
@@ -258,6 +288,7 @@ export function useWebRTC(): UseWebRTCReturn {
     totalChunks,
     initiateConnection,
     acceptConnection,
+    handleSignal,
     sendFile,
     receiveFile,
     onFileReceived,

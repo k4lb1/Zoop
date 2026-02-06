@@ -12,6 +12,8 @@ export const DEFAULT_RELAYS = ['wss://nos.lol'] as const
 export const KIND_WEBRTC_OFFER = 30333
 /** WebRTC-Answer von Empfänger zurück an Sender */
 export const KIND_WEBRTC_ANSWER = 30334
+/** ICE-Kandidaten (Trickle ICE) */
+export const KIND_WEBRTC_ICE_CANDIDATE = 30335
 
 export type WebrtcOfferEventStructure = {
   kind: typeof KIND_WEBRTC_OFFER
