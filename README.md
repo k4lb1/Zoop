@@ -108,4 +108,4 @@ MIT
 
 ---
 
-**100% Vibecode** – i dont know what iam doing · Zoop – P2P file sharing over Nostr
+**100% Vibecode** · Zoop – P2P file sharing over Nostr
