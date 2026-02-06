@@ -7,10 +7,13 @@ import SimplePeer from 'simple-peer'
 
 const CHUNK_SIZE = 64 * 1024 // 64KB
 const CONNECTION_TIMEOUT_MS = 30_000
-const STUN_SERVER = 'stun:stun.l.google.com:19302'
 
 const rtcConfig: RTCConfiguration = {
-  iceServers: [{ urls: STUN_SERVER }],
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun.stunprotocol.org:3478' },
+  ],
 }
 
 export type TransferState = 'idle' | 'connecting' | 'sending' | 'receiving' | 'done' | 'error'
@@ -184,6 +187,11 @@ export function useWebRTC(): UseWebRTCReturn {
       return
     }
     setState('done')
+    try {
+      peer.destroy()
+    } catch {
+      /* ignore */
+    }
   }, [])
 
   const receiveFile = useCallback(
