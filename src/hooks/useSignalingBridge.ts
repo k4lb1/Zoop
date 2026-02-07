@@ -1,0 +1,255 @@
+import { useRef, useCallback, useEffect } from 'react'
+import type SimplePeer from 'simple-peer'
+import { KIND_WEBRTC_OFFER, KIND_WEBRTC_ANSWER, KIND_WEBRTC_ICE_CANDIDATE } from '../utils/nostr'
+import { encryptForReceiver, decryptFromSender } from '../utils/crypto'
+import type { SignalData } from './useWebRTC'
+import type { VerifiedEvent } from 'nostr-tools'
+
+export type IncomingOffer = {
+  eventId: string
+  senderPubkey: string
+  senderNpub: string
+  fileName: string
+  fileSize: number
+  encryptedContent: string
+}
+
+type PublishEvent = (event: {
+  kind: number
+  content: string
+  tags: string[][]
+  created_at: number
+}) => Promise<{ id: string } | null>
+
+type SubscribeToEvents = (
+  filter: { kinds?: number[]; '#e'?: string[]; '#p'?: string[]; since?: number },
+  onEvent: (ev: VerifiedEvent) => void
+) => () => void
+
+export type UseSignalingBridgeParams = {
+  publishEvent: PublishEvent
+  subscribeToEvents: SubscribeToEvents
+  secretKeyHex: string | null
+  userPubkey: string | null
+  initiateConnection: (onSignal: (data: SignalData) => void) => Promise<SimplePeer.Instance>
+  acceptConnection: (offer: RTCSessionDescriptionInit, onSignal: (data: SignalData) => void) => Promise<SimplePeer.Instance>
+  handleSignal: (peer: SimplePeer.Instance, signal: SignalData) => void
+  sendFile: (peer: SimplePeer.Instance, file: File) => Promise<void>
+  receiveFile: (peer: SimplePeer.Instance, fileName: string, fileSize: number) => Promise<Blob | null>
+  reset: () => void
+}
+
+export type UseSignalingBridgeReturn = {
+  startSend: (params: { recipientHex: string; file: File }) => Promise<void>
+  acceptOffer: (offer: IncomingOffer) => Promise<void>
+}
+
+export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignalingBridgeReturn {
+  const {
+    publishEvent,
+    subscribeToEvents,
+    secretKeyHex,
+    userPubkey,
+    initiateConnection,
+    acceptConnection,
+    handleSignal,
+    sendFile,
+    receiveFile,
+    reset,
+  } = params
+
+  const peerRef = useRef<SimplePeer.Instance | null>(null)
+  const answerHandledRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      const p = peerRef.current
+      if (p && !p.destroyed) {
+        try {
+          p.destroy()
+        } catch {}
+        peerRef.current = null
+      }
+    }
+  }, [])
+
+  const startSend = useCallback(
+    async (params: { recipientHex: string; file: File }) => {
+      const { recipientHex, file } = params
+      reset()
+      answerHandledRef.current = null
+      let offerId: string | null = null
+      let unsubAnswer: (() => void) | null = null
+      const peer = await initiateConnection(async (signalData: SignalData) => {
+        if ('type' in signalData && signalData.type === 'offer') {
+          const encrypted = await encryptForReceiver(JSON.stringify(signalData), recipientHex, secretKeyHex ?? undefined)
+          const signed = await publishEvent({
+            kind: KIND_WEBRTC_OFFER,
+            content: encrypted,
+            tags: [
+              ['p', recipientHex],
+              ['file-name', file.name],
+              ['file-size', String(file.size)],
+            ],
+            created_at: Math.floor(Date.now() / 1000),
+          })
+          if (!signed) return
+          offerId = signed.id
+          const since = Math.floor(Date.now() / 1000) - 120
+          unsubAnswer = subscribeToEvents(
+            { kinds: [KIND_WEBRTC_ANSWER, KIND_WEBRTC_ICE_CANDIDATE], '#e': [offerId!], since },
+            async (ev: VerifiedEvent) => {
+              if (!ev?.content || !ev?.pubkey) return
+              try {
+                const dec = await decryptFromSender(ev.content, ev.pubkey, secretKeyHex ?? undefined)
+                const data = JSON.parse(dec) as SignalData
+                const p = peerRef.current
+                if (p) handleSignal(p, data)
+                if (ev.kind === KIND_WEBRTC_ANSWER) answerHandledRef.current = offerId
+              } catch {}
+            }
+          )
+        } else if ('candidate' in signalData && offerId) {
+          const encrypted = await encryptForReceiver(JSON.stringify(signalData), recipientHex, secretKeyHex ?? undefined)
+          await publishEvent({
+            kind: KIND_WEBRTC_ICE_CANDIDATE,
+            content: encrypted,
+            tags: [['p', recipientHex], ['e', offerId]],
+            created_at: Math.floor(Date.now() / 1000),
+          })
+        }
+      })
+      peerRef.current = peer
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const t35 = setTimeout(() => {
+            if (answerHandledRef.current !== offerId) {
+              unsubAnswer?.()
+              reject(new Error('Sender: No answer from recipient within 90s. Check Nostr relay or that the recipient has the app open and is online.'))
+            }
+          }, 90_000)
+          const t45 = setTimeout(() => {
+            if (answerHandledRef.current === offerId) {
+              unsubAnswer?.()
+              try {
+                peer.destroy()
+              } catch {}
+              reject(new Error('Sender: WebRTC did not connect within 45s (answer was received). Try two different devices or another network. Check console (F12) for details.'))
+            }
+          }, 45_000)
+          const clearBoth = () => {
+            clearTimeout(t35)
+            clearTimeout(t45)
+            unsubAnswer?.()
+          }
+          peer.on('connect', () => {
+            clearBoth()
+            resolve()
+          })
+          peer.on('error', (err) => {
+            clearBoth()
+            try {
+              peer.destroy()
+            } catch {}
+            reject(err)
+          })
+        })
+        await sendFile(peer, file)
+      } finally {
+        peerRef.current = null
+      }
+    },
+    [
+      secretKeyHex,
+      initiateConnection,
+      publishEvent,
+      subscribeToEvents,
+      handleSignal,
+      sendFile,
+      reset,
+    ]
+  )
+
+  const acceptOffer = useCallback(
+    async (offer: IncomingOffer) => {
+      reset()
+      const decrypted = await decryptFromSender(offer.encryptedContent, offer.senderPubkey, secretKeyHex ?? undefined)
+      const webrtcOffer = JSON.parse(decrypted) as RTCSessionDescriptionInit
+      const peer = await acceptConnection(webrtcOffer, async (signalData: SignalData) => {
+        const encrypted = await encryptForReceiver(JSON.stringify(signalData), offer.senderPubkey, secretKeyHex ?? undefined)
+        const kind = 'type' in signalData && signalData.type === 'answer' ? KIND_WEBRTC_ANSWER : KIND_WEBRTC_ICE_CANDIDATE
+        await publishEvent({
+          kind,
+          content: encrypted,
+          tags: [
+            ['p', offer.senderPubkey],
+            ['e', offer.eventId],
+          ],
+          created_at: Math.floor(Date.now() / 1000),
+        })
+      })
+      peerRef.current = peer
+      const unsubIce = subscribeToEvents(
+        {
+          kinds: [KIND_WEBRTC_ICE_CANDIDATE],
+          '#e': [offer.eventId],
+          '#p': userPubkey ? [userPubkey] : [],
+          since: Math.floor(Date.now() / 1000) - 60,
+        },
+        async (ev: VerifiedEvent) => {
+          if (!ev?.content || ev.pubkey !== offer.senderPubkey) return
+          try {
+            const dec = await decryptFromSender(ev.content, ev.pubkey, secretKeyHex ?? undefined)
+            const data = JSON.parse(dec) as SignalData
+            const p = peerRef.current
+            if (p) handleSignal(p, data)
+          } catch {}
+        }
+      )
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const t = setTimeout(() => {
+            unsubIce()
+            try {
+              peer.destroy()
+            } catch {}
+            reject(new Error('Receiver: WebRTC connection did not establish within 60s. Try two different devices or another network. Check console (F12) for details.'))
+          }, 60_000)
+          peer.on('connect', () => {
+            clearTimeout(t)
+            unsubIce()
+            resolve()
+          })
+          peer.on('error', (err) => {
+            const em = err?.message ?? ''
+            if (/close called|user-initiated abort/i.test(em)) return
+            clearTimeout(t)
+            unsubIce()
+            try {
+              peer.destroy()
+            } catch {}
+            reject(err)
+          })
+        })
+        await receiveFile(peer, offer.fileName, offer.fileSize)
+      } finally {
+        try {
+          if (!peer.destroyed) peer.destroy()
+        } catch {}
+        peerRef.current = null
+      }
+    },
+    [
+      secretKeyHex,
+      userPubkey,
+      acceptConnection,
+      publishEvent,
+      subscribeToEvents,
+      handleSignal,
+      receiveFile,
+      reset,
+    ]
+  )
+
+  return { startSend, acceptOffer }
+}
