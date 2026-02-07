@@ -95,51 +95,62 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
       onLog?.('Connecting (WebRTC)...')
       let offerId: string | null = null
       let unsubAnswer: (() => void) | null = null
+      const signalErrorRef = { current: null as Error | null }
       const peer = await initiateConnection(async (signalData: SignalData) => {
-        if ('type' in signalData && signalData.type === 'offer') {
-          const encrypted = await encryptForReceiver(JSON.stringify(signalData), recipientHex, secretKeyHex ?? undefined)
-          const signed = await publishEvent({
-            kind: KIND_WEBRTC_OFFER,
-            content: encrypted,
-            tags: [
-              ['p', recipientHex],
-              ['file-name', file.name],
-              ['file-size', String(file.size)],
-            ],
-            created_at: Math.floor(Date.now() / 1000),
-          })
-          if (!signed) return
-          offerId = signed.id
-          onLog?.('Offer sent, waiting for answer...')
-          const since = Math.floor(Date.now() / 1000) - 120
-          unsubAnswer = subscribeToEvents(
-            { kinds: [KIND_WEBRTC_ANSWER, KIND_WEBRTC_ICE_CANDIDATE], '#e': [offerId!], since },
-            async (ev: VerifiedEvent) => {
-              if (!ev?.content || !ev?.pubkey) return
-              try {
-                const dec = await decryptFromSender(ev.content, ev.pubkey, secretKeyHex ?? undefined)
-                const data = JSON.parse(dec) as SignalData
-                const p = peerRef.current
-                if (p) {
-                  handleSignal(p, data)
-                } else {
-                  incomingSignalQueueRef.current.push(data)
-                }
-                if (ev.kind === KIND_WEBRTC_ANSWER) answerHandledRef.current = offerId
-              } catch {}
-            }
-          )
-          activeUnsubRef.current = unsubAnswer
-        } else if ('candidate' in signalData && offerId) {
-          const encrypted = await encryptForReceiver(JSON.stringify(signalData), recipientHex, secretKeyHex ?? undefined)
-          await publishEvent({
-            kind: KIND_WEBRTC_ICE_CANDIDATE,
-            content: encrypted,
-            tags: [['p', recipientHex], ['e', offerId]],
-            created_at: Math.floor(Date.now() / 1000),
-          })
+        try {
+          if ('type' in signalData && signalData.type === 'offer') {
+            const encrypted = await encryptForReceiver(JSON.stringify(signalData), recipientHex, secretKeyHex ?? undefined)
+            const signed = await publishEvent({
+              kind: KIND_WEBRTC_OFFER,
+              content: encrypted,
+              tags: [
+                ['p', recipientHex],
+                ['file-name', file.name],
+                ['file-size', String(file.size)],
+              ],
+              created_at: Math.floor(Date.now() / 1000),
+            })
+            if (!signed) return
+            offerId = signed.id
+            onLog?.('Offer sent, waiting for answer...')
+            const since = Math.floor(Date.now() / 1000) - 120
+            unsubAnswer = subscribeToEvents(
+              { kinds: [KIND_WEBRTC_ANSWER, KIND_WEBRTC_ICE_CANDIDATE], '#e': [offerId!], since },
+              async (ev: VerifiedEvent) => {
+                if (!ev?.content || !ev?.pubkey) return
+                try {
+                  const dec = await decryptFromSender(ev.content, ev.pubkey, secretKeyHex ?? undefined)
+                  const data = JSON.parse(dec) as SignalData
+                  const p = peerRef.current
+                  if (p) {
+                    handleSignal(p, data)
+                  } else {
+                    incomingSignalQueueRef.current.push(data)
+                  }
+                  if (ev.kind === KIND_WEBRTC_ANSWER) answerHandledRef.current = offerId
+                } catch {}
+              }
+            )
+            activeUnsubRef.current = unsubAnswer
+          } else if ('candidate' in signalData && offerId) {
+            const encrypted = await encryptForReceiver(JSON.stringify(signalData), recipientHex, secretKeyHex ?? undefined)
+            await publishEvent({
+              kind: KIND_WEBRTC_ICE_CANDIDATE,
+              content: encrypted,
+              tags: [['p', recipientHex], ['e', offerId]],
+              created_at: Math.floor(Date.now() / 1000),
+            })
+          }
+        } catch (err) {
+          signalErrorRef.current = err instanceof Error ? err : new Error(String(err))
+          try {
+            peerRef.current?.destroy()
+          } catch {}
         }
       })
+      if (signalErrorRef.current) {
+        throw signalErrorRef.current
+      }
       peerRef.current = peer
       for (const s of incomingSignalQueueRef.current) {
         handleSignal(peer, s)

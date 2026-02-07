@@ -20,20 +20,25 @@ const defaultRtcConfig: RTCConfiguration = {
 }
 
 function getRtcConfig(): RTCConfiguration {
-  const username = (import.meta.env.VITE_METERED_TURN_USERNAME as string | undefined)?.trim()
-  const credential = (import.meta.env.VITE_METERED_TURN_CREDENTIAL as string | undefined)?.trim()
-  if (username && credential) {
-    return {
-      iceServers: [
-        { urls: 'stun:stun.relay.metered.ca:80' },
-        { urls: 'turn:standard.relay.metered.ca:80', username, credential },
-        { urls: 'turn:standard.relay.metered.ca:80?transport=tcp', username, credential },
-        { urls: 'turn:standard.relay.metered.ca:443', username, credential },
-        { urls: 'turns:standard.relay.metered.ca:443?transport=tcp', username, credential },
-      ],
-      iceCandidatePoolSize: 10,
-      iceTransportPolicy: 'all',
+  try {
+    const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {}
+    const username = (env.VITE_METERED_TURN_USERNAME as string | undefined)?.trim()
+    const credential = (env.VITE_METERED_TURN_CREDENTIAL as string | undefined)?.trim()
+    if (username && credential) {
+      return {
+        iceServers: [
+          { urls: 'stun:stun.relay.metered.ca:80' },
+          { urls: 'turn:standard.relay.metered.ca:80', username, credential },
+          { urls: 'turn:standard.relay.metered.ca:80?transport=tcp', username, credential },
+          { urls: 'turn:standard.relay.metered.ca:443', username, credential },
+          { urls: 'turns:standard.relay.metered.ca:443?transport=tcp', username, credential },
+        ],
+        iceCandidatePoolSize: 10,
+        iceTransportPolicy: 'all',
+      }
     }
+  } catch (_) {
+    // fallback to default
   }
   return defaultRtcConfig
 }
