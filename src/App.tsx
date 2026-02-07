@@ -37,12 +37,20 @@ function App() {
   const [recipientNpub, setRecipientNpub] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
+  const [logLines, setLogLines] = useState<string[]>([])
+  const logEndRef = useRef<HTMLDivElement>(null)
   const idleRef = useRef(true)
   const pendingOffersRef = useRef<IncomingOffer[]>([])
   const processedOfferIdsRef = useRef<Set<string>>(new Set())
   const processedFallbackIdsRef = useRef<Set<string>>(new Set())
   const fileDownloadRef = useRef<(file: Blob, fileName: string) => void>(() => {})
 
+  const onLog = useCallback((message: string) => {
+    setLogLines((prev) => [...prev.slice(-49), message])
+  }, [])
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [logLines])
   const { startSend: bridgeStartSend, fallbackSend: bridgeFallbackSend, acceptOffer: bridgeAcceptOffer } = useSignalingBridge({
     publishEvent,
     subscribeToEvents,
@@ -54,6 +62,7 @@ function App() {
     sendFile,
     receiveFile,
     reset,
+    onLog,
   })
 
   const handleAccept = useCallback(
@@ -171,11 +180,13 @@ function App() {
       return
     }
     setSendError(null)
+    setLogLines(['Starting send...'])
     let recipientHex: string
     try {
       recipientHex = npubToHex(recipientNpub.trim())
     } catch {
       setSendError('Invalid npub.')
+      setLogLines((prev) => [...prev.slice(-49), 'Error: Invalid npub.'])
       return
     }
     try {
@@ -184,17 +195,21 @@ function App() {
       const err = e instanceof Error ? e : new Error(String(e))
       console.error('Send flow error:', err)
       const msg = err.message?.trim() || err.toString() || 'Connection failed'
+      setLogLines((prev) => [...prev.slice(-49), `Error: ${msg}`])
       const isConnectionFailure = /ice connection failed|webrtc did not connect|no answer from recipient|connection setup timeout|connection timeout|peer connection timeout/i.test(msg)
       if (isConnectionFailure) {
         setSendError(null)
         setTransferState('sending')
+        setLogLines((prev) => [...prev.slice(-49), 'WebRTC failed, trying fallback...'])
         try {
           await bridgeFallbackSend({ recipientHex, file: selectedFile })
           setUsedFallback(true)
           setTransferState('done')
         } catch (e2) {
           const err2 = e2 instanceof Error ? e2 : new Error(String(e2))
-          setSendError(err2.message || 'Fallback send failed.')
+          const errMsg = err2.message || 'Fallback send failed.'
+          setSendError(errMsg)
+          setLogLines((prev) => [...prev.slice(-49), `Fallback failed: ${errMsg}`])
           setTransferState('error')
         }
         return
@@ -296,6 +311,28 @@ function App() {
               >
                 Send
               </button>
+              {logLines.length > 0 && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    padding: '10px 12px',
+                    background: '#1a1a1a',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                    maxHeight: '120px',
+                    overflowY: 'auto',
+                    fontSize: '12px',
+                    fontFamily: 'ui-monospace, monospace',
+                    color: '#a1a1aa',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {logLines.map((line, i) => (
+                    <div key={i} style={{ wordBreak: 'break-word' }}>{line}</div>
+                  ))}
+                  <div ref={logEndRef} />
+                </div>
+              )}
             </section>
 
             <p style={{ fontSize: '14px', color: '#71717a', marginTop: '24px' }}>

@@ -43,6 +43,7 @@ export type UseSignalingBridgeParams = {
   sendFile: (peer: SimplePeer.Instance, file: File) => Promise<void>
   receiveFile: (peer: SimplePeer.Instance, fileName: string, fileSize: number) => Promise<Blob | null>
   reset: () => void
+  onLog?: (message: string) => void
 }
 
 export type UseSignalingBridgeReturn = {
@@ -63,6 +64,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
     sendFile,
     receiveFile,
     reset,
+    onLog,
   } = params
 
   const peerRef = useRef<SimplePeer.Instance | null>(null)
@@ -90,6 +92,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
       const { recipientHex, file } = params
       reset()
       answerHandledRef.current = null
+      onLog?.('Connecting (WebRTC)...')
       let offerId: string | null = null
       let unsubAnswer: (() => void) | null = null
       const peer = await initiateConnection(async (signalData: SignalData) => {
@@ -107,6 +110,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
           })
           if (!signed) return
           offerId = signed.id
+          onLog?.('Offer sent, waiting for answer...')
           const since = Math.floor(Date.now() / 1000) - 120
           unsubAnswer = subscribeToEvents(
             { kinds: [KIND_WEBRTC_ANSWER, KIND_WEBRTC_ICE_CANDIDATE], '#e': [offerId!], since },
@@ -168,6 +172,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
           }
           peer.on('connect', () => {
             clearBoth()
+            onLog?.('Connected, sending file...')
             resolve()
           })
           peer.on('error', (err) => {
@@ -178,7 +183,9 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
             reject(err)
           })
         })
+        onLog?.('Sending file...')
         await sendFile(peer, file)
+        onLog?.('Done.')
       } finally {
         activeUnsubRef.current?.()
         activeUnsubRef.current = null
@@ -193,6 +200,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
       handleSignal,
       sendFile,
       reset,
+      onLog,
     ]
   )
 
@@ -294,7 +302,9 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
   const fallbackSend = useCallback(
     async (params: { recipientHex: string; file: File }) => {
       const { recipientHex, file } = params
+      onLog?.('Encrypting file...')
       const { ciphertext, key, iv } = await encryptFile(file)
+      onLog?.('Uploading (fallback)...')
       const blob = new Blob([ciphertext])
       const url = await uploadTo0x0(blob)
       const { keyBase64, ivBase64 } = await exportKeyAndIv(key, iv)
@@ -306,6 +316,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
         ivBase64,
       })
       const encrypted = await encryptForReceiver(payload, recipientHex, secretKeyHex ?? undefined)
+      onLog?.('Sending link via Nostr...')
       const published = await publishEvent({
         kind: KIND_ZOOP_FALLBACK,
         content: encrypted,
@@ -313,8 +324,9 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
         created_at: Math.floor(Date.now() / 1000),
       })
       if (!published) throw new Error('Could not publish fallback event.')
+      onLog?.('Fallback done.')
     },
-    [secretKeyHex, publishEvent]
+    [secretKeyHex, publishEvent, onLog]
   )
 
   return { startSend, fallbackSend, acceptOffer }

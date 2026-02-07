@@ -14,7 +14,7 @@
 - **NIP-44** – WebRTC offer/answer and ICE candidates encrypted over Nostr
 - **Custom event kinds** – 30333 Offer, 30334 Answer, 30335 ICE candidate, 30340 Fallback (0x0)
 - **STUN + TURN** – Google STUN, FreeTurn (UDP/TLS)
-- **0x0.st fallback** – if WebRTC/ICE fails, file is encrypted (AES-GCM), uploaded to 0x0.st (24h), link + key sent via Nostr (kind 30340); recipient downloads and decrypts
+- **0x0.st fallback** – if WebRTC/ICE fails, file is encrypted (AES-GCM), uploaded to 0x0.st (24h), link + key sent via Nostr (kind 30340). **Note:** 0x0.st blocks many deployed origins (CORS); fallback works from localhost. Alternatives: run your own minimal upload endpoint (e.g. Cloudflare Worker, Vercel serverless) that accepts POST and returns a one-time URL, and point the app at it; or use another ephemeral host that allows CORS from your domain.
 - **Drag & drop** – file selection, progress with MB/s and ETA
 - **64 KB chunks** – chunk-based progress for large files
 - **Browser notifications** – when a new file offer arrives

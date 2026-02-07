@@ -7,10 +7,22 @@ export async function uploadTo0x0(blob: Blob): Promise<string> {
   const form = new FormData()
   form.append('file', blob)
   form.append('expires', String(OX0_EXPIRES_HOURS))
-  const res = await fetch(OX0_UPLOAD_URL, {
-    method: 'POST',
-    body: form,
-  })
+  let res: Response
+  try {
+    res = await fetch(OX0_UPLOAD_URL, {
+      method: 'POST',
+      body: form,
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (/failed to fetch|cors|access-control|403/i.test(msg) || (e && typeof (e as { type?: string }).type === 'string')) {
+      throw new Error('0x0.st blocks this origin (e.g. GitHub Pages). Run the app from localhost to use fallback.')
+    }
+    throw e
+  }
+  if (res.status === 403 || res.headers.get('Access-Control-Allow-Origin') === null) {
+    throw new Error('0x0.st blocks this origin (e.g. GitHub Pages). Run the app from localhost to use fallback.')
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     throw new Error(`0x0 upload failed: ${res.status} ${text || res.statusText}`)

@@ -7,23 +7,27 @@ const RELAY_STORAGE_KEY = 'zoop-relays'
 
 export type RelayConfigItem = { url: string; enabled: boolean }
 
+const DEFAULT_ENABLED: Record<string, boolean> = { 'wss://nos.lol': true, 'wss://nostr.land': false }
+
 export function loadRelayConfig(): RelayConfigItem[] {
-  if (typeof window === 'undefined') return DEFAULT_RELAYS.map((url) => ({ url, enabled: true }))
+  if (typeof window === 'undefined') {
+    return DEFAULT_RELAYS.map((url) => ({ url, enabled: DEFAULT_ENABLED[url] ?? true }))
+  }
   try {
     const raw = localStorage.getItem(RELAY_STORAGE_KEY)
-    if (!raw) return DEFAULT_RELAYS.map((url) => ({ url, enabled: true }))
+    if (!raw) return DEFAULT_RELAYS.map((url) => ({ url, enabled: DEFAULT_ENABLED[url] ?? true }))
     const parsed = JSON.parse(raw) as RelayConfigItem[]
     const known = new Set(DEFAULT_RELAYS)
     const result = parsed.filter((c) => known.has(c.url as typeof DEFAULT_RELAYS[number]))
     const hasAll = DEFAULT_RELAYS.every((u) => result.some((c) => c.url === u))
     if (!hasAll) {
       for (const u of DEFAULT_RELAYS) {
-        if (!result.some((c) => c.url === u)) result.push({ url: u, enabled: true })
+        if (!result.some((c) => c.url === u)) result.push({ url: u, enabled: DEFAULT_ENABLED[u] ?? true })
       }
     }
-    return result.length ? result : DEFAULT_RELAYS.map((url) => ({ url, enabled: true }))
+    return result.length ? result : DEFAULT_RELAYS.map((url) => ({ url, enabled: DEFAULT_ENABLED[url] ?? true }))
   } catch {
-    return DEFAULT_RELAYS.map((url) => ({ url, enabled: true }))
+    return DEFAULT_RELAYS.map((url) => ({ url, enabled: DEFAULT_ENABLED[url] ?? true }))
   }
 }
 
