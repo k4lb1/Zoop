@@ -2,7 +2,7 @@
 
 **P2P file sharing over Nostr** – send files directly from browser to browser. Prefer WebRTC; if the connection fails (e.g. mobile/cellular), an encrypted fallback via 0x0.st runs automatically. Nostr extension (e.g. Alby or nos2x) required.
 
-**Status:** Early development (v0.0.x). This software has not undergone a security or cryptography review. Use at your own risk; treat it as experimental.
+**Status:** v0.1.0 – early development. This software has not undergone a security or cryptography review. Use at your own risk; treat it as experimental.
 
 ---
 
@@ -42,9 +42,12 @@
 
 ---
 
-## Optional: Metered TURN
+## Optional: env vars
 
-To use your own [Metered Open Relay](https://www.metered.ca/tools/openrelay/) for all users: copy `.env.example` to `.env`, set `VITE_METERED_TURN_USERNAME` and `VITE_METERED_TURN_CREDENTIAL` (from the static iceServers config in the Metered dashboard), then build. Credentials end up in the built JS; for free tier the risk is low (only your TURN quota can be used). For GitHub Pages, set these as repository secrets and pass them as env vars in your build workflow.
+Copy `.env.example` to `.env` and set as needed (or pass as env vars in your build workflow for GitHub Pages):
+
+- **Metered TURN:** `VITE_METERED_TURN_USERNAME` and `VITE_METERED_TURN_CREDENTIAL` (from the [Metered Open Relay](https://www.metered.ca/tools/openrelay/) dashboard). Credentials end up in the built JS; for free tier the risk is low.
+- **Contact:** `VITE_CONTACT_NPUB` – your Nostr npub shown in the footer as “Kontakt: npub1…” so people can reach you.
 
 ---
 
