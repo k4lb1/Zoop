@@ -10,13 +10,14 @@ type Props = {
   onLoginWithNsec: (nsec: string) => void
   onLogout: () => void
   isExtensionAvailable: boolean
+  centered?: boolean
 }
 
 const btn = { padding: '10px 16px', fontSize: '14px', fontWeight: 500, border: 'none', borderRadius: '12px', cursor: 'pointer' as const }
 const darkBorder = '#333'
 const darkMuted = '#a1a1aa'
 
-export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, isExtensionAvailable }: Props) {
+export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, isExtensionAvailable, centered }: Props) {
   const [nsecInput, setNsecInput] = useState('')
   const [showNsec, setShowNsec] = useState(false)
 
@@ -57,10 +58,15 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
     )
   }
 
+  const align = centered ? 'center' : 'flex-end'
+  const textAlign = centered ? 'center' : 'right'
+  const buttonWidth = centered ? '100%' : undefined
+  const maxWidth = centered ? '100%' : '260px'
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: align, gap: '8px', width: centered ? '100%' : undefined }}>
       {!isExtensionAvailable && (
-        <p style={{ fontSize: '12px', color: '#f59e0b', maxWidth: '260px', textAlign: 'right' }}>
+        <p style={{ fontSize: '12px', color: '#f59e0b', maxWidth, width: centered ? '100%' : undefined, textAlign }}>
           No Nostr extension – use “Login with nsec” below or install Alby/nos2x.
         </p>
       )}
@@ -68,7 +74,7 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
         type="button"
         onClick={onLogin}
         disabled={!isExtensionAvailable}
-        style={{ ...btn, color: '#fff', background: '#7B3FF2', opacity: isExtensionAvailable ? 1 : 0.5 }}
+        style={{ ...btn, color: '#fff', background: '#7B3FF2', opacity: isExtensionAvailable ? 1 : 0.5, width: buttonWidth }}
       >
         Connect with Nostr (Extension)
       </button>
@@ -76,13 +82,13 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
       <button
         type="button"
         onClick={() => setShowNsec((s) => !s)}
-        style={{ ...btn, color: darkMuted, background: 'transparent', border: `1px solid ${darkBorder}`, fontSize: '12px' }}
+        style={{ ...btn, color: darkMuted, background: 'transparent', border: `1px solid ${darkBorder}`, fontSize: '12px', width: buttonWidth }}
       >
         {showNsec ? 'Hide nsec' : 'Login with nsec'}
       </button>
 
       {showNsec && (
-        <form onSubmit={handleNsecSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', maxWidth: '260px' }}>
+        <form onSubmit={handleNsecSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', maxWidth: centered ? '100%' : '260px' }}>
           <input
             type="password"
             value={nsecInput}
@@ -103,7 +109,7 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
         </form>
       )}
 
-      {error && <p style={{ fontSize: '12px', color: '#ef4444', maxWidth: '260px', textAlign: 'right' }}>{error}</p>}
+      {error && <p style={{ fontSize: '12px', color: '#ef4444', maxWidth, width: centered ? '100%' : undefined, textAlign }}>{error}</p>}
     </div>
   )
 }

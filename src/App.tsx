@@ -95,6 +95,8 @@ function App() {
             resolve()
           })
           peer.on('error', (err) => {
+            const em = err?.message ?? ''
+            if (/close called|user-initiated abort/i.test(em)) return
             clearTimeout(t)
             unsubIce()
             try {
@@ -108,6 +110,7 @@ function App() {
         const err = e instanceof Error ? e : new Error(String(e))
         console.error('Receiver WebRTC error:', err)
         const msg = err.message?.trim() || err.toString() || 'Connection failed'
+        if (/close called|user-initiated abort/i.test(msg)) return
         if (/connection timeout|peer connection timeout/i.test(msg)) {
           setSendError(msg)
         } else if (/ice connection failed/i.test(msg)) {
@@ -292,16 +295,18 @@ function App() {
 
   return (
     <div className="min-h-screen" style={baseStyles}>
-      <header className="absolute top-0 right-0 p-4 z-10" style={{ position: 'absolute', top: 0, right: 0, padding: '16px', zIndex: 10 }}>
-        <LoginButton
-          user={user}
-          error={error}
-          onLogin={login}
-          onLoginWithNsec={loginWithNsec}
-          onLogout={logout}
-          isExtensionAvailable={isExtensionAvailable}
-        />
-      </header>
+      {user ? (
+        <header className="absolute top-0 right-0 p-4 z-10" style={{ position: 'absolute', top: 0, right: 0, padding: '16px', zIndex: 10 }}>
+          <LoginButton
+            user={user}
+            error={error}
+            onLogin={login}
+            onLoginWithNsec={loginWithNsec}
+            onLogout={logout}
+            isExtensionAvailable={isExtensionAvailable}
+          />
+        </header>
+      ) : null}
 
       <main className="max-w-lg mx-auto px-4 pt-16 pb-8 space-y-8" style={{ ...mainStyles, ...(user && relayStatus.length > 0 ? { paddingBottom: 48 } : {}) }}>
         <div className="text-center" style={{ textAlign: 'center' }}>
@@ -314,11 +319,24 @@ function App() {
         </div>
 
         {!user ? (
-          <div className="rounded-2xl p-8 text-center" style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
-            <p style={{ color: '#a1a1aa', fontSize: '14px' }}>
-              Connect with Nostr above to send or receive files.
-            </p>
-          </div>
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '12px' }}>
+              <LoginButton
+                user={user}
+                error={error}
+                onLogin={login}
+                onLoginWithNsec={loginWithNsec}
+                onLogout={logout}
+                isExtensionAvailable={isExtensionAvailable}
+                centered
+              />
+            </div>
+            <div className="rounded-2xl p-8 text-center" style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
+              <p style={{ color: '#a1a1aa', fontSize: '14px' }}>
+                Connect with Nostr above to send or receive files.
+              </p>
+            </div>
+          </>
         ) : (
           <>
             <section style={{ marginTop: '24px' }}>
