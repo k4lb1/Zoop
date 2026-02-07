@@ -8,7 +8,7 @@ export async function encryptForReceiver(
   if (typeof window !== 'undefined' && window.nostr?.nip44Encrypt) {
     return window.nostr.nip44Encrypt(receiverPublicKeyHex, plaintext)
   }
-  if (!senderSecretKeyHex) throw new Error('NIP-44: Sender-Secret oder Extension nötig')
+  if (!senderSecretKeyHex) throw new Error('NIP-44: Sender secret or extension required')
   const senderSecret = nostrUtils.hexToBytes(senderSecretKeyHex)
   const conversationKey = nip44.v2.utils.getConversationKey(senderSecret, receiverPublicKeyHex)
   return nip44.v2.encrypt(plaintext, conversationKey)
@@ -22,7 +22,7 @@ export async function decryptFromSender(
   if (typeof window !== 'undefined' && window.nostr?.nip44Decrypt) {
     return window.nostr.nip44Decrypt(senderPublicKeyHex, ciphertext)
   }
-  if (!receiverSecretKeyHex) throw new Error('NIP-44: Empfänger-Secret oder Extension nötig')
+  if (!receiverSecretKeyHex) throw new Error('NIP-44: Receiver secret or extension required')
   const receiverSecret = nostrUtils.hexToBytes(receiverSecretKeyHex)
   const conversationKey = nip44.v2.utils.getConversationKey(receiverSecret, senderPublicKeyHex)
   return nip44.v2.decrypt(ciphertext, conversationKey)

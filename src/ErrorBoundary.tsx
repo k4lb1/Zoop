@@ -26,7 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
             color: '#171717',
           }}
         >
-          <h1 style={{ fontSize: 20, marginBottom: 8 }}>Zoop – Fehler</h1>
+          <h1 style={{ fontSize: 20, marginBottom: 8 }}>Zoop – Error</h1>
           <pre
             style={{
               padding: 16,
@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<Props, State> {
             {this.state.error.message}
           </pre>
           <p style={{ marginTop: 16, fontSize: 14, color: '#525252' }}>
-            Bitte diese Meldung kopieren und dem Entwickler schicken. Browser-Konsole (F12) enthält oft mehr Infos.
+            Copy this message for the developer. Browser console (F12) often has more details.
           </p>
         </div>
       )

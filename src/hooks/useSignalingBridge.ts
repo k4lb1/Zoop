@@ -1,7 +1,13 @@
 import { useRef, useCallback, useEffect } from 'react'
 import type SimplePeer from 'simple-peer'
-import { KIND_WEBRTC_OFFER, KIND_WEBRTC_ANSWER, KIND_WEBRTC_ICE_CANDIDATE } from '../utils/nostr'
+import { KIND_WEBRTC_OFFER, KIND_WEBRTC_ANSWER, KIND_WEBRTC_ICE_CANDIDATE, KIND_ZOOP_FALLBACK } from '../utils/nostr'
 import { encryptForReceiver, decryptFromSender } from '../utils/crypto'
+import {
+  encryptFile,
+  uploadTo0x0,
+  exportKeyAndIv,
+  fallbackPayloadToJson,
+} from '../utils/fallback0x0'
 import type { SignalData } from './useWebRTC'
 import type { VerifiedEvent } from 'nostr-tools'
 
@@ -41,6 +47,7 @@ export type UseSignalingBridgeParams = {
 
 export type UseSignalingBridgeReturn = {
   startSend: (params: { recipientHex: string; file: File }) => Promise<void>
+  fallbackSend: (params: { recipientHex: string; file: File }) => Promise<void>
   acceptOffer: (offer: IncomingOffer) => Promise<void>
 }
 
@@ -143,19 +150,19 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
               reject(new Error('Sender: No answer from recipient within 90s. Check Nostr relay or that the recipient has the app open and is online.'))
             }
           }, 90_000)
-          const t45 = setTimeout(() => {
+          const t60 = setTimeout(() => {
             if (answerHandledRef.current === offerId) {
               unsubAnswer?.()
               activeUnsubRef.current = null
               try {
                 peer.destroy()
               } catch {}
-              reject(new Error('Sender: WebRTC did not connect within 45s (answer was received). Try two different devices or another network. Check console (F12) for details.'))
+              reject(new Error('Sender: WebRTC did not connect within 60s (answer was received). Try WiFi; some mobile networks block TURN. Or try two different devices. Check console (F12) for details.'))
             }
-          }, 45_000)
+          }, 60_000)
           const clearBoth = () => {
             clearTimeout(t35)
-            clearTimeout(t45)
+            clearTimeout(t60)
             unsubAnswer?.()
             activeUnsubRef.current = null
           }
@@ -284,5 +291,31 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
     ]
   )
 
-  return { startSend, acceptOffer }
+  const fallbackSend = useCallback(
+    async (params: { recipientHex: string; file: File }) => {
+      const { recipientHex, file } = params
+      const { ciphertext, key, iv } = await encryptFile(file)
+      const blob = new Blob([ciphertext])
+      const url = await uploadTo0x0(blob)
+      const { keyBase64, ivBase64 } = await exportKeyAndIv(key, iv)
+      const payload = fallbackPayloadToJson({
+        url,
+        fileName: file.name,
+        fileSize: file.size,
+        keyBase64,
+        ivBase64,
+      })
+      const encrypted = await encryptForReceiver(payload, recipientHex, secretKeyHex ?? undefined)
+      const published = await publishEvent({
+        kind: KIND_ZOOP_FALLBACK,
+        content: encrypted,
+        tags: [['p', recipientHex]],
+        created_at: Math.floor(Date.now() / 1000),
+      })
+      if (!published) throw new Error('Could not publish fallback event.')
+    },
+    [secretKeyHex, publishEvent]
+  )
+
+  return { startSend, fallbackSend, acceptOffer }
 }

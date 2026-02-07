@@ -5,6 +5,7 @@ export const DEFAULT_RELAYS = ['wss://nos.lol'] as const
 export const KIND_WEBRTC_OFFER = 30333
 export const KIND_WEBRTC_ANSWER = 30334
 export const KIND_WEBRTC_ICE_CANDIDATE = 30335
+export const KIND_ZOOP_FALLBACK = 30340
 
 export type WebrtcOfferEventStructure = {
   kind: typeof KIND_WEBRTC_OFFER

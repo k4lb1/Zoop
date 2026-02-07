@@ -8,7 +8,7 @@ const iceServers: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
   {
-    urls: ['turn:freeturn.net:3478', 'turns:freeturn.net:5349'],
+    urls: ['turn:freeturn.net:3478?transport=udp', 'turn:freeturn.net:3478?transport=tcp', 'turns:freeturn.net:5349?transport=tcp'],
     username: 'free',
     credential: 'free',
   },
@@ -45,6 +45,7 @@ export type UseWebRTCReturn = {
   sendFile: (peer: SimplePeer.Instance, file: File) => Promise<void>
   receiveFile: (peer: SimplePeer.Instance, fileName: string, fileSize: number) => Promise<Blob | null>
   onFileReceived: (callback: (file: Blob, fileName: string) => void) => () => void
+  setTransferState: (state: TransferState) => void
   reset: () => void
 }
 
@@ -278,6 +279,8 @@ export function useWebRTC(): UseWebRTCReturn {
     []
   )
 
+  const setTransferState = useCallback((s: TransferState) => setState(s), [])
+
   return {
     progress,
     state,
@@ -292,6 +295,7 @@ export function useWebRTC(): UseWebRTCReturn {
     sendFile,
     receiveFile,
     onFileReceived,
+    setTransferState,
     reset,
   }
 }

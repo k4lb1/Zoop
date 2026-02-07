@@ -6,7 +6,9 @@ import { TransferProgress } from './components/TransferProgress'
 import { useNostr } from './hooks/useNostr'
 import { useWebRTC } from './hooks/useWebRTC'
 import { useSignalingBridge, type IncomingOffer } from './hooks/useSignalingBridge'
-import { KIND_WEBRTC_OFFER, npubToHex, hexToNpub } from './utils/nostr'
+import { KIND_WEBRTC_OFFER, KIND_ZOOP_FALLBACK, npubToHex, hexToNpub } from './utils/nostr'
+import { decryptFromSender } from './utils/crypto'
+import { parseFallbackPayload, decryptFile, importKeyAndIv } from './utils/fallback0x0'
 import type { VerifiedEvent } from 'nostr-tools'
 
 export type { IncomingOffer }
@@ -27,6 +29,7 @@ function App() {
     chunkIndex,
     totalChunks,
     onFileReceived,
+    setTransferState,
     reset,
   } = useWebRTC()
 
@@ -37,8 +40,10 @@ function App() {
   const idleRef = useRef(true)
   const pendingOffersRef = useRef<IncomingOffer[]>([])
   const processedOfferIdsRef = useRef<Set<string>>(new Set())
+  const processedFallbackIdsRef = useRef<Set<string>>(new Set())
+  const fileDownloadRef = useRef<(file: Blob, fileName: string) => void>(() => {})
 
-  const { startSend: bridgeStartSend, acceptOffer: bridgeAcceptOffer } = useSignalingBridge({
+  const { startSend: bridgeStartSend, fallbackSend: bridgeFallbackSend, acceptOffer: bridgeAcceptOffer } = useSignalingBridge({
     publishEvent,
     subscribeToEvents,
     secretKeyHex,
@@ -84,14 +89,16 @@ function App() {
     handleAccept(offer)
   }, [state, handleAccept])
 
-  onFileReceived(useCallback((file: Blob, fileName: string) => {
+  const handleFileDownload = useCallback((file: Blob, fileName: string) => {
     const url = URL.createObjectURL(file)
     const a = document.createElement('a')
     a.href = url
     a.download = fileName
     a.click()
     URL.revokeObjectURL(url)
-  }, []))
+  }, [])
+  fileDownloadRef.current = handleFileDownload
+  onFileReceived(handleFileDownload)
 
   useEffect(() => {
     if (!user?.pubkey) return
@@ -132,6 +139,31 @@ function App() {
     return unsub
   }, [user?.pubkey, subscribeToEvents, handleAccept])
 
+  useEffect(() => {
+    if (!user?.pubkey) return
+    const unsub = subscribeToEvents(
+      { kinds: [KIND_ZOOP_FALLBACK], '#p': [user.pubkey], since: Math.floor(Date.now() / 1000) - 86400 },
+      async (event: VerifiedEvent) => {
+        if (!event?.content || !event?.pubkey || processedFallbackIdsRef.current.has(event.id)) return
+        processedFallbackIdsRef.current.add(event.id)
+        try {
+          const decrypted = await decryptFromSender(event.content, event.pubkey, secretKeyHex ?? undefined)
+          const payload = parseFallbackPayload(decrypted)
+          const res = await fetch(payload.url)
+          if (!res.ok) throw new Error(`Download failed: ${res.status}`)
+          const ciphertext = await res.arrayBuffer()
+          const { key, iv } = await importKeyAndIv(payload.keyBase64, payload.ivBase64)
+          const plaintext = await decryptFile(ciphertext, key, iv)
+          const blob = new Blob([plaintext])
+          fileDownloadRef.current(blob, payload.fileName)
+        } catch (err) {
+          console.error('Fallback receive error:', err)
+        }
+      }
+    )
+    return unsub
+  }, [user?.pubkey, subscribeToEvents])
+
   const handleSend = useCallback(async () => {
     if (!user || !selectedFile || !recipientNpub.trim()) {
       setSendError('Please choose recipient and file.')
@@ -151,6 +183,20 @@ function App() {
       const err = e instanceof Error ? e : new Error(String(e))
       console.error('Send flow error:', err)
       const msg = err.message?.trim() || err.toString() || 'Connection failed'
+      const isConnectionFailure = /ice connection failed|webrtc did not connect|no answer from recipient|connection setup timeout|connection timeout|peer connection timeout/i.test(msg)
+      if (isConnectionFailure) {
+        setSendError(null)
+        setTransferState('sending')
+        try {
+          await bridgeFallbackSend({ recipientHex, file: selectedFile })
+          setTransferState('done')
+        } catch (e2) {
+          const err2 = e2 instanceof Error ? e2 : new Error(String(e2))
+          setSendError(err2.message || 'Fallback send failed.')
+          setTransferState('error')
+        }
+        return
+      }
       if (/connection timeout|peer connection timeout|no response/i.test(msg)) {
         setSendError(msg)
       } else if (/ice connection failed/i.test(msg)) {
@@ -160,7 +206,7 @@ function App() {
       }
       reset()
     }
-  }, [user, selectedFile, recipientNpub, bridgeStartSend, reset])
+  }, [user, selectedFile, recipientNpub, bridgeStartSend, bridgeFallbackSend, setTransferState, reset])
 
   const baseStyles = { minHeight: '100vh', background: '#0f0f0f', color: '#fafafa', padding: '20px' }
   const mainStyles = { maxWidth: '512px', margin: '0 auto', padding: '64px 16px 32px' }
@@ -243,7 +289,7 @@ function App() {
                   }}
                   style={{ width: '18px', height: '18px' }}
                 />
-                <span style={{ fontSize: '14px', color: '#a1a1aa' }}>Relay only (für Mobilfunk / wenn ICE fehlschlägt)</span>
+                <span style={{ fontSize: '14px', color: '#a1a1aa' }}>Relay only (for mobile/cellular or when ICE fails)</span>
               </label>
               <TransferProgress
                 progress={progress}

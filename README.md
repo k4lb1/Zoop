@@ -35,7 +35,7 @@
 
 - **Browser** with a Nostr extension (NIP-07), e.g. [Alby](https://getalby.com) or [nos2x](https://github.com/fiatjaf/nos2x)
 - **NIP-44** in the extension for encrypted signaling (offer/answer/ICE)
-- **Network:** WebRTC uses STUN and TURN (FreeTurn). Bei ICE-Fehlern (z. B. iPhone ohne WLAN): Option **„Relay only“** aktivieren (Send-Bereich) oder URL mit `?relay=1` öffnen. Ansonsten anderes Netz/VPN/Firewall prüfen.
+- **Network:** WebRTC uses STUN and TURN (FreeTurn). Bei ICE-Fehlern (z. B. iPhone ohne WLAN): Option **„Relay only“** aktivieren (Send-Bereich) oder URL mit `?relay=1` öffnen. Wenn es mit Relay only trotzdem nicht verbindet: WLAN probieren – manche Mobilfunknetze blockieren TURN-Ports. Ansonsten anderes Netz/VPN/Firewall prüfen.
 
 ---
 
