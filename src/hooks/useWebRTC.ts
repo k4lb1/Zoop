@@ -263,8 +263,10 @@ export function useWebRTC(): UseWebRTCReturn {
           } else resolve(null)
         })
         peer.on('error', (err) => {
+          const msg = err?.message ?? ''
+          if (/close called|user-initiated abort/i.test(msg)) return
           setState('error')
-          setError(err.message)
+          setError(msg)
           reject(err)
         })
       }),
