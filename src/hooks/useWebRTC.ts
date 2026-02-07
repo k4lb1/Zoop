@@ -227,6 +227,7 @@ export function useWebRTC(): UseWebRTCReturn {
     }
     setState('sending')
     startedAtRef.current = performance.now()
+    await new Promise((r) => setTimeout(r, 80))
     let transferred = 0
     let index = 0
     let offset = 0
@@ -254,6 +255,7 @@ export function useWebRTC(): UseWebRTCReturn {
       setError('Cancelled')
       return
     }
+    if (import.meta.env?.DEV) console.log('[Zoop] Sender: sent', index, 'chunks, total bytes', transferred)
     const drainDeadline = Date.now() + 15_000
     while (Date.now() < drainDeadline && !peer.destroyed) {
       const buffered = (peer as unknown as { bufferSize?: number }).bufferSize ?? 0
@@ -277,17 +279,9 @@ export function useWebRTC(): UseWebRTCReturn {
         setChunkIndex(0)
         setTotalChunks(Math.ceil(fileSize / CHUNK_SIZE))
         startedAtRef.current = performance.now()
-        const chunks: ArrayBuffer[] = []
-        let received = 0
-        let index = 0
-        peer.on('data', (data: ArrayBuffer | Buffer) => {
-          const buf =
-            data instanceof ArrayBuffer
-              ? data
-              : (data as Buffer).buffer.slice((data as Buffer).byteOffset, (data as Buffer).byteOffset + (data as Buffer).byteLength)
-          chunks.push(buf)
-          received += buf.byteLength
-          index += 1
+        const chunkPromises: Promise<ArrayBuffer>[] = []
+        let dataCount = 0
+        const updateProgressFromReceived = (received: number, index: number) => {
           setProgress(fileSize ? (received / fileSize) * 100 : 100)
           setChunkIndex(index)
           const startedAt = startedAtRef.current
@@ -297,14 +291,56 @@ export function useWebRTC(): UseWebRTCReturn {
             setSpeedMbps(bytesPerSec / (1024 * 1024))
             setEtaSeconds(bytesPerSec > 0 ? (fileSize - received) / bytesPerSec : null)
           }
+        }
+        let receivedTotal = 0
+        let chunkIndexCount = 0
+        peer.on('data', (data: ArrayBuffer | Buffer | Blob) => {
+          dataCount += 1
+          if (dataCount === 1 && import.meta.env?.DEV) {
+            console.log('[Zoop] Receiver: first data chunk, type:', data?.constructor?.name)
+          }
+          try {
+            let p: Promise<ArrayBuffer>
+            if (data instanceof ArrayBuffer) {
+              p = Promise.resolve(data)
+            } else if (data instanceof Blob) {
+              p = data.arrayBuffer()
+            } else {
+              const b = data as Buffer
+              p = Promise.resolve(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer)
+            }
+            chunkPromises.push(
+              p.then((buf) => {
+                receivedTotal += buf.byteLength
+                chunkIndexCount += 1
+                updateProgressFromReceived(receivedTotal, chunkIndexCount)
+                return buf
+              })
+            )
+          } catch (err) {
+            if (import.meta.env?.DEV) console.error('[Zoop] Receiver: data handler error', err)
+          }
         })
         peer.on('close', () => {
           setState('done')
-          if (chunks.length) {
-            const blob = new Blob(chunks)
-            fileReceivedCbRef.current(blob, fileName)
-            resolve(blob)
-          } else resolve(null)
+          if (import.meta.env?.DEV) {
+            console.log('[Zoop] Receiver: close, data events:', dataCount, 'chunk promises:', chunkPromises.length)
+          }
+          if (chunkPromises.length === 0) {
+            resolve(null)
+            return
+          }
+          Promise.all(chunkPromises)
+            .then((buffers) => {
+              const blob = new Blob(buffers)
+              fileReceivedCbRef.current(blob, fileName)
+              resolve(blob)
+            })
+            .catch((err) => {
+              setState('error')
+              setError(err?.message ?? String(err))
+              reject(err)
+            })
         })
         peer.on('error', (err) => {
           const msg = err?.message ?? ''
