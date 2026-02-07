@@ -32,6 +32,10 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          VITE_CONTACT_NPUB: ${{ secrets.VITE_CONTACT_NPUB }}
+          VITE_METERED_TURN_USERNAME: ${{ secrets.VITE_METERED_TURN_USERNAME }}
+          VITE_METERED_TURN_CREDENTIAL: ${{ secrets.VITE_METERED_TURN_CREDENTIAL }}
         run: npm run build
 
       - name: Upload artifact
