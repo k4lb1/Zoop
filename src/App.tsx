@@ -71,9 +71,9 @@ function App() {
         await bridgeAcceptOffer(offer)
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e))
-        console.error('Receiver WebRTC error:', err)
         const msg = err.message?.trim() || err.toString() || 'Connection failed'
         if (/close called|user-initiated abort/i.test(msg)) return
+        onLog(`Error: ${msg}`)
         if (/connection timeout|peer connection timeout/i.test(msg)) {
           setSendError(msg)
         } else if (/ice connection failed/i.test(msg)) {
@@ -83,7 +83,7 @@ function App() {
         }
       }
     },
-    [bridgeAcceptOffer]
+    [bridgeAcceptOffer, onLog]
   )
 
   const canAcceptRef = state === 'idle' || state === 'done' || state === 'error'

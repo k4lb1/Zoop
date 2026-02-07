@@ -218,8 +218,11 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
   const acceptOffer = useCallback(
     async (offer: IncomingOffer) => {
       reset()
+      onLog?.(`Incoming: ${offer.fileName} (${(offer.fileSize / 1024).toFixed(1)} KB)`)
+      onLog?.('Decrypting offer...')
       const decrypted = await decryptFromSender(offer.encryptedContent, offer.senderPubkey, secretKeyHex ?? undefined)
       const webrtcOffer = JSON.parse(decrypted) as RTCSessionDescriptionInit
+      onLog?.('Connecting (WebRTC)...')
       const peer = await acceptConnection(webrtcOffer, async (signalData: SignalData) => {
         const encrypted = await encryptForReceiver(JSON.stringify(signalData), offer.senderPubkey, secretKeyHex ?? undefined)
         const kind = 'type' in signalData && signalData.type === 'answer' ? KIND_WEBRTC_ANSWER : KIND_WEBRTC_ICE_CANDIDATE
@@ -276,6 +279,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
             clearTimeout(t)
             unsubIce()
             activeUnsubRef.current = null
+            onLog?.('Connected, receiving file...')
             resolve()
           })
           peer.on('error', (err) => {
@@ -291,6 +295,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
           })
         })
         await receivePromise
+        onLog?.('Done.')
       } finally {
         activeUnsubRef.current?.()
         activeUnsubRef.current = null
@@ -309,6 +314,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
       handleSignal,
       receiveFile,
       reset,
+      onLog,
     ]
   )
 
