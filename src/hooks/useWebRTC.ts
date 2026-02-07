@@ -114,8 +114,8 @@ export function useWebRTC(): UseWebRTCReturn {
       })
       peer.on('error', (err: Error) => fail(err))
       peer.on('iceStateChange', (iceState: RTCIceConnectionState) => {
-        if (iceState === 'failed' || iceState === 'disconnected') {
-          fail(new Error(`ICE connection ${iceState}. Check firewall/NAT.`))
+        if (iceState === 'failed') {
+          fail(new Error('ICE connection failed. Check firewall/NAT.'))
         }
       })
       const t = setTimeout(() => {
@@ -153,8 +153,8 @@ export function useWebRTC(): UseWebRTCReturn {
         peer.on('connect', () => clearTimeout(t))
         peer.on('error', (err: Error) => fail(err))
         peer.on('iceStateChange', (iceState: RTCIceConnectionState) => {
-          if (iceState === 'failed' || iceState === 'disconnected') {
-            fail(new Error(`ICE connection ${iceState}. Check firewall/NAT.`))
+          if (iceState === 'failed') {
+            fail(new Error('ICE connection failed. Check firewall/NAT.'))
           }
         })
         const t = setTimeout(() => {
