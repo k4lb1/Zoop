@@ -261,6 +261,8 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
       )
       activeUnsubRef.current = unsubIce
       try {
+        // Register data handler before connect so no chunks are missed when sender starts
+        const receivePromise = receiveFile(peer, offer.fileName, offer.fileSize)
         await new Promise<void>((resolve, reject) => {
           const t = setTimeout(() => {
             unsubIce()
@@ -288,7 +290,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
             reject(err)
           })
         })
-        await receiveFile(peer, offer.fileName, offer.fileSize)
+        await receivePromise
       } finally {
         activeUnsubRef.current?.()
         activeUnsubRef.current = null
