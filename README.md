@@ -13,7 +13,7 @@
 - **Trickle ICE** – ICE candidates sent over Nostr for better NAT/firewall handling
 - **NIP-44** – WebRTC offer/answer and ICE candidates encrypted over Nostr
 - **Custom event kinds** – 30333 Offer, 30334 Answer, 30335 ICE candidate, 30340 Fallback (0x0)
-- **STUN + TURN** – Google STUN, FreeTurn (UDP/TLS). Optional: [Metered Open Relay](https://www.metered.ca/tools/openrelay/) via build-time env (see below).
+- **STUN + TURN** – Google STUN, FreeTurn (UDP/TLS)
 - **0x0.st fallback** – if WebRTC/ICE fails, file is encrypted (AES-GCM), uploaded to 0x0.st (24h), link + key sent via Nostr (kind 30340). **Note:** 0x0.st blocks many deployed origins (CORS); fallback works from localhost. Alternatives: run your own minimal upload endpoint (e.g. Cloudflare Worker, Vercel serverless) that accepts POST and returns a one-time URL, and point the app at it; or use another ephemeral host that allows CORS from your domain.
 - **Drag & drop** – file selection, progress with MB/s and ETA
 - **64 KB chunks** – chunk-based progress for large files
@@ -42,15 +42,6 @@
 
 ---
 
-## Optional: env vars
-
-Copy `.env.example` to `.env` and set as needed (or pass as env vars in your build workflow for GitHub Pages):
-
-- **Metered TURN:** `VITE_METERED_TURN_USERNAME` and `VITE_METERED_TURN_CREDENTIAL` (from the [Metered Open Relay](https://www.metered.ca/tools/openrelay/) dashboard). Credentials end up in the built JS; for free tier the risk is low.
-- **Contact:** `VITE_CONTACT_NPUB` – your Nostr npub shown in the footer as “Kontakt: npub1…” so people can reach you.
-
----
-
 ## Install & run
 
 ```bash
@@ -61,8 +52,6 @@ npm run dev
 ```
 
 Open **http://localhost:5173** (or the port shown).
-
-**Live (GitHub Pages):** https://k4lb1.github.io/Zoop/
 
 ---
 
@@ -117,3 +106,7 @@ All timeouts destroy the WebRTC peer and (where applicable) unsubscribe from Nos
 ## License
 
 MIT
+
+---
+
+100 % Vibecode
