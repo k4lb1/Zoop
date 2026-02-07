@@ -2,6 +2,8 @@
 
 **P2P file sharing over Nostr** – send files directly from browser to browser. Prefer WebRTC; if the connection fails (e.g. mobile/cellular), an encrypted fallback via 0x0.st runs automatically. Nostr extension (e.g. Alby or nos2x) required.
 
+**Status:** Early development (v0.0.x). This software has not undergone a security or cryptography review. Use at your own risk; treat it as experimental.
+
 ---
 
 ## Features
@@ -16,7 +18,7 @@
 - **Drag & drop** – file selection, progress with MB/s and ETA
 - **64 KB chunks** – chunk-based progress for large files
 - **Browser notifications** – when a new file offer arrives
-- **Relay** – uses `wss://nos.lol` only (configurable in `src/utils/nostr.ts`)
+- **Relay** – default relays nos.lol and nostr.land (toggle in footer; config in `src/utils/nostr.ts`)
 
 ---
 
