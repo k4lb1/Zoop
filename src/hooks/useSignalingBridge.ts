@@ -60,9 +60,13 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
 
   const peerRef = useRef<SimplePeer.Instance | null>(null)
   const answerHandledRef = useRef<string | null>(null)
+  const incomingSignalQueueRef = useRef<SignalData[]>([])
+  const activeUnsubRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     return () => {
+      activeUnsubRef.current?.()
+      activeUnsubRef.current = null
       const p = peerRef.current
       if (p && !p.destroyed) {
         try {
@@ -70,6 +74,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
         } catch {}
         peerRef.current = null
       }
+      incomingSignalQueueRef.current = []
     }
   }, [])
 
@@ -104,11 +109,16 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
                 const dec = await decryptFromSender(ev.content, ev.pubkey, secretKeyHex ?? undefined)
                 const data = JSON.parse(dec) as SignalData
                 const p = peerRef.current
-                if (p) handleSignal(p, data)
+                if (p) {
+                  handleSignal(p, data)
+                } else {
+                  incomingSignalQueueRef.current.push(data)
+                }
                 if (ev.kind === KIND_WEBRTC_ANSWER) answerHandledRef.current = offerId
               } catch {}
             }
           )
+          activeUnsubRef.current = unsubAnswer
         } else if ('candidate' in signalData && offerId) {
           const encrypted = await encryptForReceiver(JSON.stringify(signalData), recipientHex, secretKeyHex ?? undefined)
           await publishEvent({
@@ -120,17 +130,23 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
         }
       })
       peerRef.current = peer
+      for (const s of incomingSignalQueueRef.current) {
+        handleSignal(peer, s)
+      }
+      incomingSignalQueueRef.current = []
       try {
         await new Promise<void>((resolve, reject) => {
           const t35 = setTimeout(() => {
             if (answerHandledRef.current !== offerId) {
               unsubAnswer?.()
+              activeUnsubRef.current = null
               reject(new Error('Sender: No answer from recipient within 90s. Check Nostr relay or that the recipient has the app open and is online.'))
             }
           }, 90_000)
           const t45 = setTimeout(() => {
             if (answerHandledRef.current === offerId) {
               unsubAnswer?.()
+              activeUnsubRef.current = null
               try {
                 peer.destroy()
               } catch {}
@@ -141,6 +157,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
             clearTimeout(t35)
             clearTimeout(t45)
             unsubAnswer?.()
+            activeUnsubRef.current = null
           }
           peer.on('connect', () => {
             clearBoth()
@@ -156,6 +173,8 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
         })
         await sendFile(peer, file)
       } finally {
+        activeUnsubRef.current?.()
+        activeUnsubRef.current = null
         peerRef.current = null
       }
     },
@@ -189,6 +208,10 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
         })
       })
       peerRef.current = peer
+      for (const s of incomingSignalQueueRef.current) {
+        handleSignal(peer, s)
+      }
+      incomingSignalQueueRef.current = []
       const unsubIce = subscribeToEvents(
         {
           kinds: [KIND_WEBRTC_ICE_CANDIDATE],
@@ -202,14 +225,20 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
             const dec = await decryptFromSender(ev.content, ev.pubkey, secretKeyHex ?? undefined)
             const data = JSON.parse(dec) as SignalData
             const p = peerRef.current
-            if (p) handleSignal(p, data)
+            if (p) {
+              handleSignal(p, data)
+            } else {
+              incomingSignalQueueRef.current.push(data)
+            }
           } catch {}
         }
       )
+      activeUnsubRef.current = unsubIce
       try {
         await new Promise<void>((resolve, reject) => {
           const t = setTimeout(() => {
             unsubIce()
+            activeUnsubRef.current = null
             try {
               peer.destroy()
             } catch {}
@@ -218,6 +247,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
           peer.on('connect', () => {
             clearTimeout(t)
             unsubIce()
+            activeUnsubRef.current = null
             resolve()
           })
           peer.on('error', (err) => {
@@ -225,6 +255,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
             if (/close called|user-initiated abort/i.test(em)) return
             clearTimeout(t)
             unsubIce()
+            activeUnsubRef.current = null
             try {
               peer.destroy()
             } catch {}
@@ -233,6 +264,8 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
         })
         await receiveFile(peer, offer.fileName, offer.fileSize)
       } finally {
+        activeUnsubRef.current?.()
+        activeUnsubRef.current = null
         try {
           if (!peer.destroyed) peer.destroy()
         } catch {}
