@@ -4,7 +4,7 @@ import SimplePeer from 'simple-peer'
 const CHUNK_SIZE = 64 * 1024
 const CONNECTION_TIMEOUT_MS = 65_000
 
-const rtcConfig: RTCConfiguration = {
+const defaultRtcConfig: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
@@ -17,6 +17,29 @@ const rtcConfig: RTCConfiguration = {
   ],
   iceCandidatePoolSize: 10,
   iceTransportPolicy: 'all',
+}
+
+function getRtcConfig(): RTCConfiguration {
+  const username = (import.meta.env.VITE_METERED_TURN_USERNAME as string | undefined)?.trim()
+  const credential = (import.meta.env.VITE_METERED_TURN_CREDENTIAL as string | undefined)?.trim()
+  if (username && credential) {
+    return {
+      iceServers: [
+        { urls: 'stun:stun.relay.metered.ca:80' },
+        { urls: 'turn:standard.relay.metered.ca:80', username, credential },
+        { urls: 'turn:standard.relay.metered.ca:80?transport=tcp', username, credential },
+        { urls: 'turn:standard.relay.metered.ca:443', username, credential },
+        { urls: 'turns:standard.relay.metered.ca:443?transport=tcp', username, credential },
+      ],
+      iceCandidatePoolSize: 10,
+      iceTransportPolicy: 'all',
+    }
+  }
+  return defaultRtcConfig
+}
+
+async function getRtcConfigAsync(): Promise<RTCConfiguration> {
+  return getRtcConfig()
 }
 
 export type TransferState = 'idle' | 'connecting' | 'sending' | 'receiving' | 'done' | 'error'
@@ -87,14 +110,15 @@ export function useWebRTC(): UseWebRTCReturn {
     }
   }, [])
 
-  const initiateConnection = useCallback((onSignal: (data: SignalData) => void): Promise<SimplePeer.Instance> => {
+  const initiateConnection = useCallback(async (onSignal: (data: SignalData) => void): Promise<SimplePeer.Instance> => {
     setError(null)
     setState('connecting')
+    const config = await getRtcConfigAsync()
     return new Promise((resolve) => {
       const peer = new SimplePeer({
         initiator: true,
         trickle: true,
-        config: rtcConfig,
+        config,
       })
       let settled = false
       const fail = (err: Error) => {
@@ -130,14 +154,15 @@ export function useWebRTC(): UseWebRTCReturn {
   }, [])
 
   const acceptConnection = useCallback(
-    (offer: RTCSessionDescriptionInit, onSignal: (data: SignalData) => void): Promise<SimplePeer.Instance> => {
+    async (offer: RTCSessionDescriptionInit, onSignal: (data: SignalData) => void): Promise<SimplePeer.Instance> => {
       setError(null)
       setState('connecting')
+      const config = await getRtcConfigAsync()
       return new Promise((resolve) => {
         const peer = new SimplePeer({
           initiator: false,
           trickle: true,
-          config: rtcConfig,
+          config,
         })
         peer.signal(offer)
         let settled = false
