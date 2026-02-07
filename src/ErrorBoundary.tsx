@@ -1,7 +1,3 @@
-/**
- * Fängt Render-Fehler ab und zeigt sie an (statt weiße Seite).
- */
-
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
 type Props = { children: ReactNode }

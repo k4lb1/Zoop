@@ -1,8 +1,3 @@
-/**
- * Send File Area – Drag & Drop, große klickbare Fläche
- * Unterstützt mehrere Dateien (mehrfacher Drop / Auswahl).
- */
-
 import { useState } from 'react'
 
 type Props = {

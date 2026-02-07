@@ -1,7 +1,3 @@
-/**
- * LoginButton – Extension (Connect with Nostr) or nsec login, optional generate new nsec
- */
-
 import { useState, useCallback } from 'react'
 import { nip19 } from 'nostr-tools'
 import { generateSecretKey } from 'nostr-tools/pure'
@@ -42,9 +38,7 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
     if (!user) return
     try {
       await navigator.clipboard.writeText(user.npub)
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }, [user])
 
   if (user) {

@@ -1,8 +1,3 @@
-/**
- * WebRTC-Hilfsfunktionen für P2P-Dateiübertragung
- * Nutzt simple-peer für DataChannel-basierte Übertragung.
- */
-
 import SimplePeer from 'simple-peer'
 
 export type PeerOptions = {

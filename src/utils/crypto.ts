@@ -1,8 +1,3 @@
-/**
- * NIP-44 Verschlüsselung für WebRTC-Offer/Answer
- * Nutzt Extension (window.nostr.nip44Encrypt/Decrypt) falls vorhanden, sonst nostr-tools mit Secret Key.
- */
-
 import { nip44, utils as nostrUtils } from 'nostr-tools'
 
 export async function encryptForReceiver(

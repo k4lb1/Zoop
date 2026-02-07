@@ -1,8 +1,3 @@
-/**
- * Zoop – P2P File Sharing über Nostr
- * Login → Empfänger → Datei → Senden | Eingehende Anfragen
- */
-
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { LoginButton } from './components/LoginButton'
 import { FileSelector } from './components/FileSelector'
@@ -83,9 +78,7 @@ function App() {
               const dec = await decryptFromSender(ev.content, ev.pubkey, secretKeyHex ?? undefined)
               const data = JSON.parse(dec) as SignalData
               handleSignal(peer, data)
-            } catch {
-              /* ignore */
-            }
+            } catch {}
           }
         )
         await new Promise<void>((resolve, reject) => {
@@ -93,9 +86,7 @@ function App() {
             unsubIce()
             try {
               peer.destroy()
-            } catch {
-              /* ignore */
-            }
+            } catch {}
             reject(new Error('Receiver: WebRTC connection did not establish within 60s. Try two different devices or another network. Check console (F12) for details.'))
           }, 60_000)
           peer.on('connect', () => {
@@ -108,9 +99,7 @@ function App() {
             unsubIce()
             try {
               peer.destroy()
-            } catch {
-              /* ignore */
-            }
+            } catch {}
             reject(err)
           })
         })
@@ -170,7 +159,6 @@ function App() {
           encryptedContent: event.content,
         }
 
-        // Only show notification if permission already granted (requestPermission needs user gesture)
         if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
           new Notification('Zoop – new file', {
             body: `New file from ${senderNpub.slice(0, 16)}… (${fileName})`,
@@ -235,9 +223,7 @@ function App() {
                 const data = JSON.parse(dec) as SignalData
                 handleSignal(peer, data)
                 if (ev.kind === KIND_WEBRTC_ANSWER) answerHandledRef.current = offerId
-              } catch {
-                /* ignore */
-              }
+            } catch {}
             }
           )
         } else if ('candidate' in signalData && offerId) {
@@ -264,9 +250,7 @@ function App() {
             unsubAnswer?.()
             try {
               peer.destroy()
-            } catch {
-              /* ignore */
-            }
+            } catch {}
             reject(new Error('Sender: WebRTC did not connect within 45s (answer was received). Try two different devices or another network. Check console (F12) for details.'))
           }
         }, 45_000)
@@ -283,9 +267,7 @@ function App() {
           clearBoth()
           try {
             peer.destroy()
-          } catch {
-            /* ignore */
-          }
+          } catch {}
           reject(err)
         })
       })

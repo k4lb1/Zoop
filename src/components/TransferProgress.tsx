@@ -1,7 +1,3 @@
-/**
- * Fortschrittsbalken (Upload/Download) – ohne lucide-react
- */
-
 type Props = {
   progress: number
   state: 'idle' | 'connecting' | 'sending' | 'receiving' | 'done' | 'error'

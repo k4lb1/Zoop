@@ -1,7 +1,3 @@
-/**
- * Eingehende Datei-Anfrage – Annehmen / Ablehnen (ohne lucide-react)
- */
-
 export type IncomingRequestData = {
   requestEventId: string
   senderPubkey: string

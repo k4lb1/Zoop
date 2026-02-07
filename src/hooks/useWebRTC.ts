@@ -1,11 +1,7 @@
-/**
- * useWebRTC – simple-peer mit Trickle ICE, STUN/TURN, DataChannel, 64KB Chunks
- */
-
 import { useState, useCallback, useRef } from 'react'
 import SimplePeer from 'simple-peer'
 
-const CHUNK_SIZE = 64 * 1024 // 64KB
+const CHUNK_SIZE = 64 * 1024
 const CONNECTION_TIMEOUT_MS = 65_000
 
 const rtcConfig: RTCConfiguration = {
@@ -15,6 +11,8 @@ const rtcConfig: RTCConfiguration = {
     { urls: 'stun:stun.stunprotocol.org:3478' },
     {
       urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'],
+      username: '',
+      credential: '',
     },
     {
       urls: ['turn:freeturn.net:3478', 'turns:freeturn.net:5349'],
@@ -28,7 +26,6 @@ const rtcConfig: RTCConfiguration = {
 
 export type TransferState = 'idle' | 'connecting' | 'sending' | 'receiving' | 'done' | 'error'
 
-/** Offer/Answer oder ICE-Kandidat (Trickle); Format wie simple-peer signal() */
 export type SignalData =
   | RTCSessionDescriptionInit
   | { type: 'candidate'; candidate: RTCIceCandidateInit }
@@ -88,7 +85,6 @@ export function useWebRTC(): UseWebRTCReturn {
         'candidate' in signal && signal.candidate && !('type' in signal && signal.type === 'candidate')
           ? { type: 'candidate' as const, candidate: signal.candidate }
           : signal
-      // simple-peer accepts RTCIceCandidateInit at runtime; @types/simple-peer expects RTCIceCandidate
       peer.signal(data as Parameters<SimplePeer.Instance['signal']>[0])
     } catch (err) {
       console.error('Error handling signal:', err)
@@ -113,9 +109,7 @@ export function useWebRTC(): UseWebRTCReturn {
         setError(err.message)
         try {
           peer.destroy()
-        } catch {
-          /* ignore */
-        }
+        } catch {}
       }
       peer.on('signal', (data: SignalData) => {
         onSignal(data)
@@ -156,9 +150,7 @@ export function useWebRTC(): UseWebRTCReturn {
           setError(err.message)
           try {
             peer.destroy()
-          } catch {
-            /* ignore */
-          }
+          } catch {}
         }
         peer.on('signal', (data: SignalData) => {
           onSignal(data)
@@ -232,9 +224,7 @@ export function useWebRTC(): UseWebRTCReturn {
     setState('done')
     try {
       peer.destroy()
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }, [])
 
   const receiveFile = useCallback(

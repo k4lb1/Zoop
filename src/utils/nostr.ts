@@ -1,25 +1,16 @@
-/**
- * Nostr-Hilfsfunktionen für Zoop
- * Relays, Custom Event Kinds 30333/30334 für WebRTC-Signaling
- */
-
 import { nip19, Relay } from 'nostr-tools'
 import type { Event, Filter } from 'nostr-tools'
 
 export const DEFAULT_RELAYS = ['wss://nos.lol'] as const
-
-/** WebRTC-Offer von Sender an Empfänger */
 export const KIND_WEBRTC_OFFER = 30333
-/** WebRTC-Answer von Empfänger zurück an Sender */
 export const KIND_WEBRTC_ANSWER = 30334
-/** ICE-Kandidaten (Trickle ICE) */
 export const KIND_WEBRTC_ICE_CANDIDATE = 30335
 
 export type WebrtcOfferEventStructure = {
   kind: typeof KIND_WEBRTC_OFFER
-  content: string // verschlüsselter WebRTC-Offer (NIP-44)
+  content: string
   tags: [
-    ['p', string],       // recipient pubkey
+    ['p', string],
     ['file-name', string],
     ['file-size', string],
     ...string[][]
@@ -28,10 +19,10 @@ export type WebrtcOfferEventStructure = {
 
 export type WebrtcAnswerEventStructure = {
   kind: typeof KIND_WEBRTC_ANSWER
-  content: string // verschlüsselter WebRTC-Answer (NIP-44)
+  content: string
   tags: [
-    ['p', string],   // sender pubkey (Antwort an)
-    ['e', string],   // request event id
+    ['p', string],
+    ['e', string],
     ...string[][]
   ]
 }

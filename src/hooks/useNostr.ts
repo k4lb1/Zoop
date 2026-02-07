@@ -1,7 +1,3 @@
-/**
- * useNostr – NIP-07 (Extension) oder nsec-Login, Relays, publishEvent, subscribeToEvents
- */
-
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { nip19, Relay, getPublicKey, finalizeEvent } from 'nostr-tools'
 import { utils as nostrUtils } from 'nostr-tools'
@@ -33,7 +29,6 @@ export type RelayStatusItem = {
 export type UseNostrReturn = {
   user: NostrUser | null
   error: string | null
-  /** Secret key hex when logged in via nsec (for NIP-44); null when using extension */
   secretKeyHex: string | null
   login: () => Promise<NostrUser | null>
   loginWithNsec: (nsec: string) => Promise<NostrUser | null>
@@ -108,7 +103,7 @@ export function useNostr(): UseNostrReturn {
     setError(null)
     secretKeyRef.current = null
     relaysRef.current.forEach((r) => {
-      try { r.close() } catch { /* ignore */ }
+      try { r.close() } catch {}
     })
     relaysRef.current = []
     setRelays([])
