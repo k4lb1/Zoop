@@ -10,13 +10,19 @@ export default defineConfig({
     global: 'window',
   },
   resolve: {
-    // simple-peer nutzt Node-Module – im Browser Polyfills verwenden
     alias: {
       events: 'events',
       util: 'util',
+      stream: 'readable-stream',
     },
+    dedupe: ['readable-stream', 'stream'],
   },
   optimizeDeps: {
-    include: ['events', 'util'],
+    include: ['events', 'util', 'readable-stream', 'buffer', 'simple-peer'],
+  },
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
   },
 })
