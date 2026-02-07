@@ -240,11 +240,11 @@ function App() {
         const t35 = setTimeout(() => {
           if (answerHandledRef.current !== offerId) {
             unsubAnswer?.()
-            setSendError('Sender: No answer from recipient within 35s. Check Nostr relay or that the recipient is online.')
+            setSendError('Sender: No answer from recipient within 90s. Check Nostr relay or that the recipient has the app open and is online.')
             reset()
             reject(new Error('No answer from recipient'))
           }
-        }, 35_000)
+        }, 90_000)
         const t45 = setTimeout(() => {
           if (answerHandledRef.current === offerId) {
             unsubAnswer?.()
