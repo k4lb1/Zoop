@@ -21,7 +21,8 @@ const defaultRtcConfig: RTCConfiguration = {
 
 function getRtcConfig(): RTCConfiguration {
   try {
-    const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {}
+    const env: Record<string, unknown> =
+      typeof import.meta !== 'undefined' && import.meta.env ? (import.meta.env as Record<string, unknown>) : {}
     const username = (env.VITE_METERED_TURN_USERNAME as string | undefined)?.trim()
     const credential = (env.VITE_METERED_TURN_CREDENTIAL as string | undefined)?.trim()
     if (username && credential) {
