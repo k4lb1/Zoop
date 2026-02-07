@@ -10,11 +10,6 @@ const rtcConfig: RTCConfiguration = {
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun.stunprotocol.org:3478' },
     {
-      urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'],
-      username: '',
-      credential: '',
-    },
-    {
       urls: ['turn:freeturn.net:3478', 'turns:freeturn.net:5349'],
       username: 'free',
       credential: 'free',
