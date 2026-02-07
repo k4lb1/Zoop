@@ -1,7 +1,37 @@
 import { nip19, Relay } from 'nostr-tools'
 import type { Event, Filter } from 'nostr-tools'
 
-export const DEFAULT_RELAYS = ['wss://nos.lol'] as const
+export const DEFAULT_RELAYS = ['wss://nos.lol', 'wss://nostr.land'] as const
+
+const RELAY_STORAGE_KEY = 'zoop-relays'
+
+export type RelayConfigItem = { url: string; enabled: boolean }
+
+export function loadRelayConfig(): RelayConfigItem[] {
+  if (typeof window === 'undefined') return DEFAULT_RELAYS.map((url) => ({ url, enabled: true }))
+  try {
+    const raw = localStorage.getItem(RELAY_STORAGE_KEY)
+    if (!raw) return DEFAULT_RELAYS.map((url) => ({ url, enabled: true }))
+    const parsed = JSON.parse(raw) as RelayConfigItem[]
+    const known = new Set(DEFAULT_RELAYS)
+    const result = parsed.filter((c) => known.has(c.url as typeof DEFAULT_RELAYS[number]))
+    const hasAll = DEFAULT_RELAYS.every((u) => result.some((c) => c.url === u))
+    if (!hasAll) {
+      for (const u of DEFAULT_RELAYS) {
+        if (!result.some((c) => c.url === u)) result.push({ url: u, enabled: true })
+      }
+    }
+    return result.length ? result : DEFAULT_RELAYS.map((url) => ({ url, enabled: true }))
+  } catch {
+    return DEFAULT_RELAYS.map((url) => ({ url, enabled: true }))
+  }
+}
+
+export function saveRelayConfig(config: RelayConfigItem[]): void {
+  try {
+    localStorage.setItem(RELAY_STORAGE_KEY, JSON.stringify(config))
+  } catch {}
+}
 export const KIND_WEBRTC_OFFER = 30333
 export const KIND_WEBRTC_ANSWER = 30334
 export const KIND_WEBRTC_ICE_CANDIDATE = 30335

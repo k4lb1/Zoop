@@ -11,7 +11,7 @@
 - **Trickle ICE** – ICE candidates sent over Nostr for better NAT/firewall handling
 - **NIP-44** – WebRTC offer/answer and ICE candidates encrypted over Nostr
 - **Custom event kinds** – 30333 Offer, 30334 Answer, 30335 ICE candidate, 30340 Fallback (0x0)
-- **STUN + TURN** – Google STUN, FreeTurn (UDP/TLS). Optional “Relay only” for mobile/cellular
+- **STUN + TURN** – Google STUN, FreeTurn (UDP/TLS)
 - **0x0.st fallback** – if WebRTC/ICE fails, file is encrypted (AES-GCM), uploaded to 0x0.st (24h), link + key sent via Nostr (kind 30340); recipient downloads and decrypts
 - **Drag & drop** – file selection, progress with MB/s and ETA
 - **64 KB chunks** – chunk-based progress for large files
@@ -36,7 +36,7 @@
 
 - **Browser** with a Nostr extension (NIP-07), e.g. [Alby](https://getalby.com) or [nos2x](https://github.com/fiatjaf/nos2x)
 - **NIP-44** in the extension for encrypted signaling (offer/answer/ICE)
-- **Network:** WebRTC uses STUN and TURN (FreeTurn). If ICE fails (e.g. iPhone on cellular): enable **“Relay only”** in the send section or open the URL with `?relay=1`. If it still does not connect, try WiFi (some mobile networks block TURN). Otherwise try another network or check VPN/firewall. If WebRTC fails entirely, the app automatically uses the 0x0.st fallback (encrypted upload, link via Nostr).
+- **Network:** WebRTC uses STUN and TURN (FreeTurn). If it fails (e.g. iPhone on cellular), the app automatically uses the 0x0.st fallback (encrypted upload, link via Nostr). You can toggle Nostr relays (e.g. nos.lol, nostr.land) in the footer.
 
 ---
 
@@ -95,7 +95,7 @@ Zoop/
 | **Sender: No answer (90 s)** | "No answer from recipient within 90s. Check Nostr relay or that the recipient is online." Subscription closed. |
 | **Sender: Answer received, no connect (60 s)** | "WebRTC did not connect within 60s (answer was received). Try WiFi or another network." Peer destroyed, subscription closed. **Then automatic 0x0.st fallback:** file is encrypted, uploaded, link sent via Nostr (kind 30340). |
 | **Receiver: No connect (60 s)** | "WebRTC connection did not establish within 60s. Try two different devices or another network." Peer destroyed, ICE subscription closed. |
-| **ICE connection failed** | Hint to use "Relay only" or `?relay=1`. **Then automatic 0x0.st fallback:** same as above (encrypted upload, Nostr event 30340). |
+| **ICE connection failed** | **Automatic 0x0.st fallback** (encrypted upload, Nostr event 30340). |
 | **Publish / relay failure** | "Could not publish event." or relay errors in console. |
 | **General errors** | Message derived from `error.message`; empty/undefined fall back to "Connection failed" or "Something went wrong." so something is always shown. |
 

@@ -14,7 +14,8 @@ import type { VerifiedEvent } from 'nostr-tools'
 export type { IncomingOffer }
 
 function App() {
-  const { user, error, secretKeyHex, login, loginWithNsec, logout, isExtensionAvailable, relayStatus, publishEvent, subscribeToEvents } = useNostr()
+  const { user, error, secretKeyHex, login, loginWithNsec, logout, isExtensionAvailable, relayStatus, toggleRelay, publishEvent, subscribeToEvents } = useNostr()
+  const [usedFallback, setUsedFallback] = useState(false)
   const {
     progress,
     state,
@@ -36,7 +37,6 @@ function App() {
   const [recipientNpub, setRecipientNpub] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
-  const [relayOnly, setRelayOnly] = useState(() => (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('webrtc-relay-only') === '1' : false))
   const idleRef = useRef(true)
   const pendingOffersRef = useRef<IncomingOffer[]>([])
   const processedOfferIdsRef = useRef<Set<string>>(new Set())
@@ -146,6 +146,7 @@ function App() {
       async (event: VerifiedEvent) => {
         if (!event?.content || !event?.pubkey || processedFallbackIdsRef.current.has(event.id)) return
         processedFallbackIdsRef.current.add(event.id)
+        setUsedFallback(true)
         try {
           const decrypted = await decryptFromSender(event.content, event.pubkey, secretKeyHex ?? undefined)
           const payload = parseFallbackPayload(decrypted)
@@ -189,6 +190,7 @@ function App() {
         setTransferState('sending')
         try {
           await bridgeFallbackSend({ recipientHex, file: selectedFile })
+          setUsedFallback(true)
           setTransferState('done')
         } catch (e2) {
           const err2 = e2 instanceof Error ? e2 : new Error(String(e2))
@@ -275,31 +277,17 @@ function App() {
                   Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
                 </p>
               )}
-              {(sendError || transferError) && (
-                <p className="text-sm" style={{ color: '#ef4444' }}>{sendError || transferError || 'Something went wrong.'}</p>
-              )}
-              <label className="flex items-center gap-2 mt-2 cursor-pointer" style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={relayOnly}
-                  onChange={(e) => {
-                    const v = e.target.checked
-                    setRelayOnly(v)
-                    try { if (v) sessionStorage.setItem('webrtc-relay-only', '1'); else sessionStorage.removeItem('webrtc-relay-only') } catch {}
-                  }}
-                  style={{ width: '18px', height: '18px' }}
+              <div style={{ marginBottom: '16px' }}>
+                <TransferProgress
+                  progress={progress}
+                  state={state}
+                  error={transferError}
+                  speedMbps={speedMbps}
+                  etaSeconds={etaSeconds}
+                  chunkIndex={chunkIndex}
+                  totalChunks={totalChunks}
                 />
-                <span style={{ fontSize: '14px', color: '#a1a1aa' }}>Relay only (for mobile/cellular or when ICE fails)</span>
-              </label>
-              <TransferProgress
-                progress={progress}
-                state={state}
-                error={transferError}
-                speedMbps={speedMbps}
-                etaSeconds={etaSeconds}
-                chunkIndex={chunkIndex}
-                totalChunks={totalChunks}
-              />
+              </div>
               <button
                 type="button"
                 onClick={handleSend}
@@ -313,10 +301,13 @@ function App() {
             <p style={{ fontSize: '14px', color: '#71717a', marginTop: '24px' }}>
               📥 Incoming files are accepted automatically and download when ready.
             </p>
+            {(sendError || transferError) && (
+              <p className="text-sm" style={{ color: '#ef4444', marginTop: '12px' }}>{sendError || transferError || 'Something went wrong.'}</p>
+            )}
           </>
         )}
 
-      {user && relayStatus.length > 0 && (
+      {user && (relayStatus.length > 0 || usedFallback) && (
         <footer
           style={{
             position: 'fixed',
@@ -340,14 +331,24 @@ function App() {
             const host = r.url.replace(/^wss:\/\//, '').replace(/^ws:\/\//, '').split('/')[0]
             return (
               <span key={r.url} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} title={r.url}>
+                <input
+                  type="checkbox"
+                  checked={r.enabled}
+                  onChange={() => toggleRelay(r.url)}
+                  style={{ width: '14px', height: '14px', margin: 0, cursor: 'pointer' }}
+                />
                 <span>{r.status === 'connected' ? '🟢' : '🔴'}</span>
                 <span>{host}</span>
                 <span style={{ color: r.status === 'connected' ? '#86efac' : '#f87171' }}>
-                  {r.status === 'connected' && r.latencyMs != null ? `${r.latencyMs} ms` : r.status === 'failed' ? 'failed' : '—'}
+                  {r.status === 'connected' && r.latencyMs != null ? `${r.latencyMs} ms` : r.enabled ? (r.status === 'failed' ? 'failed' : '—') : 'off'}
                 </span>
               </span>
             )
           })}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} title="0x0.st fallback (used when WebRTC fails)">
+            <span>{usedFallback ? '🟡' : '⚪'}</span>
+            <span>0x0</span>
+          </span>
         </footer>
       )}
       </main>

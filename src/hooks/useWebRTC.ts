@@ -4,24 +4,19 @@ import SimplePeer from 'simple-peer'
 const CHUNK_SIZE = 64 * 1024
 const CONNECTION_TIMEOUT_MS = 65_000
 
-const iceServers: RTCIceServer[] = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  {
-    urls: ['turn:freeturn.net:3478?transport=udp', 'turn:freeturn.net:3478?transport=tcp', 'turns:freeturn.net:5349?transport=tcp'],
-    username: 'free',
-    credential: 'free',
-  },
-  { urls: 'stun:stun.stunprotocol.org:3478' },
-]
-
-function getRtcConfig(): RTCConfiguration {
-  const relayOnly = typeof window !== 'undefined' && (window.location.search.includes('relay=1') || sessionStorage.getItem('webrtc-relay-only') === '1')
-  return {
-    iceServers,
-    iceCandidatePoolSize: 10,
-    iceTransportPolicy: relayOnly ? 'relay' : 'all',
-  }
+const rtcConfig: RTCConfiguration = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    {
+      urls: ['turn:freeturn.net:3478?transport=udp', 'turn:freeturn.net:3478?transport=tcp', 'turns:freeturn.net:5349?transport=tcp'],
+      username: 'free',
+      credential: 'free',
+    },
+    { urls: 'stun:stun.stunprotocol.org:3478' },
+  ],
+  iceCandidatePoolSize: 10,
+  iceTransportPolicy: 'all',
 }
 
 export type TransferState = 'idle' | 'connecting' | 'sending' | 'receiving' | 'done' | 'error'
@@ -99,7 +94,7 @@ export function useWebRTC(): UseWebRTCReturn {
       const peer = new SimplePeer({
         initiator: true,
         trickle: true,
-        config: getRtcConfig(),
+        config: rtcConfig,
       })
       let settled = false
       const fail = (err: Error) => {
@@ -118,7 +113,10 @@ export function useWebRTC(): UseWebRTCReturn {
       peer.on('connect', () => {
         clearTimeout(t)
       })
-      peer.on('error', (err: Error) => fail(err))
+      peer.on('error', (err: Error) => {
+        if (/close called|user-initiated abort/i.test(err?.message ?? '')) return
+        fail(err)
+      })
       peer.on('iceStateChange', (iceState: RTCIceConnectionState) => {
         if (iceState === 'failed') {
           fail(new Error('ICE connection failed. On mobile/cellular try "Relay only" below or add ?relay=1 to the URL.'))
@@ -139,7 +137,7 @@ export function useWebRTC(): UseWebRTCReturn {
         const peer = new SimplePeer({
           initiator: false,
           trickle: true,
-          config: getRtcConfig(),
+          config: rtcConfig,
         })
         peer.signal(offer)
         let settled = false
@@ -157,7 +155,10 @@ export function useWebRTC(): UseWebRTCReturn {
           onSignal(data)
         })
         peer.on('connect', () => clearTimeout(t))
-        peer.on('error', (err: Error) => fail(err))
+        peer.on('error', (err: Error) => {
+          if (/close called|user-initiated abort/i.test(err?.message ?? '')) return
+          fail(err)
+        })
         peer.on('iceStateChange', (iceState: RTCIceConnectionState) => {
           if (iceState === 'failed') {
             fail(new Error('ICE connection failed. On mobile/cellular try "Relay only" below or add ?relay=1 to the URL.'))
@@ -221,6 +222,12 @@ export function useWebRTC(): UseWebRTCReturn {
       setState('error')
       setError('Cancelled')
       return
+    }
+    const drainDeadline = Date.now() + 15_000
+    while (Date.now() < drainDeadline && !peer.destroyed) {
+      const buffered = (peer as unknown as { bufferSize?: number }).bufferSize ?? 0
+      if (buffered === 0) break
+      await new Promise((r) => setTimeout(r, 100))
     }
     setState('done')
     try {

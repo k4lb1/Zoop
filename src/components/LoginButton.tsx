@@ -76,7 +76,7 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
         disabled={!isExtensionAvailable}
         style={{ ...btn, color: '#fff', background: '#7B3FF2', opacity: isExtensionAvailable ? 1 : 0.5, width: buttonWidth }}
       >
-        Connect with Nostr (Extension)
+        Connect with Nostr
       </button>
 
       <button
