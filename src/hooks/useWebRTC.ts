@@ -4,19 +4,24 @@ import SimplePeer from 'simple-peer'
 const CHUNK_SIZE = 64 * 1024
 const CONNECTION_TIMEOUT_MS = 65_000
 
-const rtcConfig: RTCConfiguration = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun.stunprotocol.org:3478' },
-    {
-      urls: ['turn:freeturn.net:3478', 'turns:freeturn.net:5349'],
-      username: 'free',
-      credential: 'free',
-    },
-  ],
-  iceCandidatePoolSize: 10,
-  iceTransportPolicy: 'all',
+const iceServers: RTCIceServer[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  {
+    urls: ['turn:freeturn.net:3478', 'turns:freeturn.net:5349'],
+    username: 'free',
+    credential: 'free',
+  },
+  { urls: 'stun:stun.stunprotocol.org:3478' },
+]
+
+function getRtcConfig(): RTCConfiguration {
+  const relayOnly = typeof window !== 'undefined' && (window.location.search.includes('relay=1') || sessionStorage.getItem('webrtc-relay-only') === '1')
+  return {
+    iceServers,
+    iceCandidatePoolSize: 10,
+    iceTransportPolicy: relayOnly ? 'relay' : 'all',
+  }
 }
 
 export type TransferState = 'idle' | 'connecting' | 'sending' | 'receiving' | 'done' | 'error'
@@ -93,7 +98,7 @@ export function useWebRTC(): UseWebRTCReturn {
       const peer = new SimplePeer({
         initiator: true,
         trickle: true,
-        config: rtcConfig,
+        config: getRtcConfig(),
       })
       let settled = false
       const fail = (err: Error) => {
@@ -115,7 +120,7 @@ export function useWebRTC(): UseWebRTCReturn {
       peer.on('error', (err: Error) => fail(err))
       peer.on('iceStateChange', (iceState: RTCIceConnectionState) => {
         if (iceState === 'failed') {
-          fail(new Error('ICE connection failed. Check firewall/NAT.'))
+          fail(new Error('ICE connection failed. On mobile/cellular try "Relay only" below or add ?relay=1 to the URL.'))
         }
       })
       const t = setTimeout(() => {
@@ -133,7 +138,7 @@ export function useWebRTC(): UseWebRTCReturn {
         const peer = new SimplePeer({
           initiator: false,
           trickle: true,
-          config: rtcConfig,
+          config: getRtcConfig(),
         })
         peer.signal(offer)
         let settled = false
@@ -154,7 +159,7 @@ export function useWebRTC(): UseWebRTCReturn {
         peer.on('error', (err: Error) => fail(err))
         peer.on('iceStateChange', (iceState: RTCIceConnectionState) => {
           if (iceState === 'failed') {
-            fail(new Error('ICE connection failed. Check firewall/NAT.'))
+            fail(new Error('ICE connection failed. On mobile/cellular try "Relay only" below or add ?relay=1 to the URL.'))
           }
         })
         const t = setTimeout(() => {

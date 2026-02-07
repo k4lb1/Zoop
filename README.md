@@ -11,7 +11,7 @@
 - **Trickle ICE** – ICE candidates sent over Nostr for better NAT/firewall handling
 - **NIP-44** – WebRTC offer/answer and ICE candidates encrypted over Nostr
 - **Custom event kinds** – 30333 Offer, 30334 Answer, 30335 ICE candidate
-- **STUN + TURN** – Google STUN, OpenRelay + FreeTurn as fallback
+- **STUN + TURN** – Google STUN, FreeTurn (UDP/TLS). Optional „Relay only“ für Mobilfunk
 - **Drag & drop** – file selection, progress with MB/s and ETA
 - **64 KB chunks** – chunk-based progress for large files
 - **Browser notifications** – when a new file offer arrives
@@ -35,7 +35,7 @@
 
 - **Browser** with a Nostr extension (NIP-07), e.g. [Alby](https://getalby.com) or [nos2x](https://github.com/fiatjaf/nos2x)
 - **NIP-44** in the extension for encrypted signaling (offer/answer/ICE)
-- **Network:** WebRTC uses STUN and TURN (OpenRelay, FreeTurn). If you see ICE/connection timeouts, try another network or disable VPN/firewall.
+- **Network:** WebRTC uses STUN and TURN (FreeTurn). Bei ICE-Fehlern (z. B. iPhone ohne WLAN): Option **„Relay only“** aktivieren (Send-Bereich) oder URL mit `?relay=1` öffnen. Ansonsten anderes Netz/VPN/Firewall prüfen.
 
 ---
 
@@ -94,7 +94,7 @@ Zoop/
 | **Sender: No answer (35 s)** | "No answer from recipient within 35s. Check Nostr relay or that the recipient is online." Subscription for answer/ICE is closed. |
 | **Sender: Answer received, no connect (45 s)** | "WebRTC did not connect within 45s (answer was received). Try two different devices or another network. Check console (F12)." Peer destroyed, subscription closed. |
 | **Receiver: No connect (60 s)** | "WebRTC connection did not establish within 60s. Try two different devices or another network. Check console (F12)." Peer destroyed, ICE subscription closed. |
-| **ICE connection failed** | Shown with hint to try another network or disable VPN/firewall. Full error and stack in console (F12). |
+| **ICE connection failed** | Hinweis auf „Relay only“ bzw. `?relay=1` (Mobilfunk). Ansonsten anderes Netz/VPN/Firewall. Details in Konsole (F12). |
 | **Publish / relay failure** | "Could not publish event." or relay errors in console. |
 | **General errors** | Message derived from `error.message`; empty/undefined fall back to "Connection failed" or "Something went wrong." so something is always shown. |
 

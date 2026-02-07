@@ -33,6 +33,7 @@ function App() {
   const [recipientNpub, setRecipientNpub] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
+  const [relayOnly, setRelayOnly] = useState(() => (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('webrtc-relay-only') === '1' : false))
   const idleRef = useRef(true)
   const pendingOffersRef = useRef<IncomingOffer[]>([])
   const processedOfferIdsRef = useRef<Set<string>>(new Set())
@@ -231,6 +232,19 @@ function App() {
               {(sendError || transferError) && (
                 <p className="text-sm" style={{ color: '#ef4444' }}>{sendError || transferError || 'Something went wrong.'}</p>
               )}
+              <label className="flex items-center gap-2 mt-2 cursor-pointer" style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={relayOnly}
+                  onChange={(e) => {
+                    const v = e.target.checked
+                    setRelayOnly(v)
+                    try { if (v) sessionStorage.setItem('webrtc-relay-only', '1'); else sessionStorage.removeItem('webrtc-relay-only') } catch {}
+                  }}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <span style={{ fontSize: '14px', color: '#a1a1aa' }}>Relay only (für Mobilfunk / wenn ICE fehlschlägt)</span>
+              </label>
               <TransferProgress
                 progress={progress}
                 state={state}
