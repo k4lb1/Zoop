@@ -38,6 +38,8 @@ function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
   const [logLines, setLogLines] = useState<string[]>([])
+  const [showCoffeePopover, setShowCoffeePopover] = useState(false)
+  const [coffeeCopied, setCoffeeCopied] = useState(false)
   const logEndRef = useRef<HTMLDivElement>(null)
   const idleRef = useRef(true)
   const pendingOffersRef = useRef<IncomingOffer[]>([])
@@ -406,13 +408,61 @@ function App() {
               </span>
             </a>
           )}
-          <a
-            href="lightning:npub1ff5x2ah4tnmad93mfwpa8trklwy8ttctn5x2q8zzlm33xlr8mruq3l7q4q@npub.cash"
-            title="Buy me a coffee ☕"
-            style={{ display: 'inline-flex', alignItems: 'center', color: '#888', marginLeft: '4px', textDecoration: 'none' }}
-          >
-            <span style={{ fontSize: '18px' }}>☕</span>
-          </a>
+          <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: '4px' }}>
+            <button
+              type="button"
+              onClick={() => setShowCoffeePopover((v) => !v)}
+              title="Buy me a coffee ☕"
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', color: '#888', fontSize: '18px' }}
+            >
+              ☕
+            </button>
+            {showCoffeePopover && (
+              <>
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                  aria-hidden
+                  onClick={() => setShowCoffeePopover(false)}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    right: 0,
+                    marginBottom: '6px',
+                    background: '#1a1a1a',
+                    border: '1px solid #333',
+                    borderRadius: '8px',
+                    padding: '8px 0',
+                    minWidth: '160px',
+                    zIndex: 11,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  <a
+                    href="lightning:npub1ff5x2ah4tnmad93mfwpa8trklwy8ttctn5x2q8zzlm33xlr8mruq3l7q4q@npub.cash"
+                    style={{ display: 'block', padding: '8px 12px', color: '#fff', textDecoration: 'none', fontSize: '13px' }}
+                    onClick={() => setShowCoffeePopover(false)}
+                  >
+                    In Wallet öffnen
+                  </a>
+                  <button
+                    type="button"
+                    style={{ display: 'block', width: '100%', padding: '8px 12px', background: 'none', border: 'none', color: '#fff', fontSize: '13px', cursor: 'pointer', textAlign: 'left' }}
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText('npub1ff5x2ah4tnmad93mfwpa8trklwy8ttctn5x2q8zzlm33xlr8mruq3l7q4q@npub.cash')
+                        setCoffeeCopied(true)
+                        setTimeout(() => setCoffeeCopied(false), 2000)
+                      } catch {}
+                    }}
+                  >
+                    {coffeeCopied ? 'Kopiert' : 'Adresse kopieren'}
+                  </button>
+                </div>
+              </>
+            )}
+          </span>
           <a
             href="https://github.com/k4lb1/Zoop"
             target="_blank"
