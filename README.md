@@ -1,4 +1,6 @@
-# ⚡ Zoop
+# <img src="public/icon.svg" alt="" width="28" height="28" /> Zoop
+
+<div style="font-family: ui-monospace, Menlo, Monaco, 'Courier New', monospace;">
 
 **P2P file sharing over Nostr** – send files directly from browser to browser. Prefer WebRTC; if the connection fails (e.g. mobile/cellular), an encrypted fallback via 0x0.st runs automatically. Nostr extension (e.g. Alby or nos2x) required.
 
@@ -132,3 +134,5 @@ MIT
 ---
 
 100 % Vibecode
+
+</div>
