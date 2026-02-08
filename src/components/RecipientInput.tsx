@@ -17,12 +17,13 @@ export function RecipientInput({ value, onChange, placeholder = 'npub1…', disa
       style={{
         width: '100%',
         padding: '12px 16px',
-        fontSize: '16px',
-        borderRadius: '12px',
+        fontSize: '14px',
+        borderRadius: '6px',
         border: '1px solid #333',
-        background: '#1a1a1a',
-        color: '#fafafa',
+        background: '#0d0d0d',
+        color: '#fff',
         boxSizing: 'border-box',
+        fontFamily: 'var(--zoop-font), ui-monospace, monospace',
       }}
     />
   )

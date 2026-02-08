@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --zoop-bg: #000;
+  --zoop-bg-secondary: #0d0d0d;
+  --zoop-text: #fff;
+  --zoop-text-muted: #888;
+  --zoop-border: #333;
+  --zoop-font: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Monaco, "Courier New", monospace;
+}
+
+html, body {
+  background: var(--zoop-bg);
+  color: var(--zoop-text);
+  font-family: var(--zoop-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+input::placeholder {
+  color: #555;
+}

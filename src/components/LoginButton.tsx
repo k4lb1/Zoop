@@ -13,9 +13,9 @@ type Props = {
   centered?: boolean
 }
 
-const btn = { padding: '10px 16px', fontSize: '14px', fontWeight: 500, border: 'none', borderRadius: '12px', cursor: 'pointer' as const }
+const btn = { padding: '10px 16px', fontSize: '14px', fontWeight: 500, border: 'none', borderRadius: '6px', cursor: 'pointer' as const, fontFamily: 'inherit' }
 const darkBorder = '#333'
-const darkMuted = '#a1a1aa'
+const darkMuted = '#888'
 
 export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, isExtensionAvailable, centered }: Props) {
   const [nsecInput, setNsecInput] = useState('')
@@ -51,7 +51,7 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
         <button type="button" onClick={copyNpub} style={{ ...btn, color: darkMuted, background: 'transparent', border: `1px solid ${darkBorder}`, fontSize: '12px' }} title="Copy npub">
           Copy npub
         </button>
-        <button type="button" onClick={onLogout} style={{ ...btn, color: '#e4e4e7', background: '#27272a' }}>
+        <button type="button" onClick={onLogout} style={{ ...btn, color: '#fff', background: '#222', border: '1px solid #444' }}>
           Log out
         </button>
       </div>
@@ -74,7 +74,7 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
         type="button"
         onClick={onLogin}
         disabled={!isExtensionAvailable}
-        style={{ ...btn, color: '#fff', background: '#7B3FF2', opacity: isExtensionAvailable ? 1 : 0.5, width: buttonWidth }}
+        style={{ ...btn, color: '#fff', background: '#222', border: '1px solid #444', opacity: isExtensionAvailable ? 1 : 0.5, width: buttonWidth }}
       >
         Connect with Nostr
       </button>
@@ -95,12 +95,12 @@ export function LoginButton({ user, error, onLogin, onLoginWithNsec, onLogout, i
             onChange={(e) => setNsecInput(e.target.value)}
             placeholder="nsec1…"
             autoComplete="off"
-            style={{ width: '100%', padding: '8px 12px', fontSize: '13px', borderRadius: '8px', border: `1px solid ${darkBorder}`, background: '#1a1a1a', color: '#fafafa', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '8px 12px', fontSize: '13px', borderRadius: '6px', border: `1px solid ${darkBorder}`, background: '#0d0d0d', color: '#fff', boxSizing: 'border-box', fontFamily: 'inherit' }}
           />
           <button type="button" onClick={handleGenerateNsec} style={{ ...btn, color: darkMuted, background: 'transparent', border: `1px solid ${darkBorder}`, fontSize: '12px' }}>
             Generate new nsec
           </button>
-          <button type="submit" style={{ ...btn, color: '#fff', background: '#7B3FF2', fontSize: '13px' }}>
+          <button type="submit" style={{ ...btn, color: '#fff', background: '#222', border: '1px solid #444', fontSize: '13px' }}>
             Login with nsec
           </button>
           <p style={{ fontSize: '11px', color: darkMuted, margin: 0 }}>

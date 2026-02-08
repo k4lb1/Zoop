@@ -31,15 +31,15 @@ export function TransferProgress({ progress, state, error, label, speedMbps = 0,
 
   return (
     <div style={{ width: '100%', marginTop: '8px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: '#a1a1aa', marginBottom: '4px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: '#888', marginBottom: '4px' }}>
         <span>{label ?? stateLabels[state]}</span>
-        {state !== 'connecting' && state !== 'error' && <span style={{ fontWeight: 500, color: '#fafafa' }}>{Math.round(progress)}%</span>}
+        {state !== 'connecting' && state !== 'error' && <span style={{ fontWeight: 500, color: '#fff' }}>{Math.round(progress)}%</span>}
       </div>
-      <div style={{ height: '8px', width: '100%', background: '#333', borderRadius: '4px', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${progress}%`, background: '#7B3FF2', transition: 'width 0.3s ease-out' }} />
+      <div style={{ height: '6px', width: '100%', background: '#222', borderRadius: '4px', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${progress}%`, background: '#555', transition: 'width 0.3s ease-out' }} />
       </div>
       {(state === 'sending' || state === 'receiving') && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px', fontSize: '12px', color: '#a1a1aa', marginTop: '4px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px', fontSize: '12px', color: '#888', marginTop: '4px' }}>
           <span>{speedMbps > 0 ? `${speedMbps.toFixed(2)} MB/s` : '— MB/s'}</span>
           <span>{formatEta(etaSeconds)}</span>
           {totalChunks > 0 && <span>Chunk {Math.min(chunkIndex, totalChunks)}/{totalChunks}</span>}

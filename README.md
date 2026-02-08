@@ -6,6 +6,21 @@
 
 ---
 
+## Quick Start for Forks
+
+To run your own instance of Zoop on GitHub Pages:
+
+1. **Fork** this repository.
+2. In your fork, go to **Settings** → **Pages**.
+3. Under **Build and deployment**, set **Source** to **GitHub Actions** (the workflow builds the app and deploys the `dist/` folder; do not use "Deploy from a branch" with root, or you’ll get a 404).
+4. Click **Save**.
+5. Push to **main** (or run the workflow from the **Actions** tab). Wait 1–2 minutes for deployment.
+6. Visit **https://[YOUR_USERNAME].github.io/Zoop/**
+
+That’s it. Your own instance of Zoop should now be running.
+
+---
+
 ## Features
 
 - **Nostr login** (NIP-07) – connect via browser extension

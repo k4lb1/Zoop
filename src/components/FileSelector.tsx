@@ -41,9 +41,9 @@ export function FileSelector({ onFilesSelect, disabled }: Props) {
     gap: '16px',
     width: '100%',
     minHeight: '200px',
-    borderRadius: '16px',
-    border: `2px dashed ${disabled ? '#404040' : isDragging ? '#7B3FF2' : 'rgba(123,63,242,0.5)'}`,
-    background: disabled ? '#1a1a1a' : isDragging ? 'rgba(123,63,242,0.15)' : 'rgba(123,63,242,0.08)',
+    borderRadius: '6px',
+    border: `2px dashed ${disabled ? '#333' : isDragging ? '#666' : '#444'}`,
+    background: disabled ? '#0d0d0d' : isDragging ? '#111' : '#0d0d0d',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.6 : 1,
   }
@@ -57,9 +57,8 @@ export function FileSelector({ onFilesSelect, disabled }: Props) {
       onDragLeave={handleDragLeave}
     >
       <input type="file" style={{ display: 'none' }} onChange={handleChange} disabled={disabled} multiple />
-      <span style={{ fontSize: '48px' }}>📤</span>
-      <span style={{ fontSize: '16px', fontWeight: 500, color: '#e4e4e7' }}>Drop file here or tap</span>
-      <span style={{ fontSize: '14px', color: '#a1a1aa', textAlign: 'center' }}>Multiple files supported (sent one after another)</span>
+      <span style={{ fontSize: '14px', color: '#888' }}>Drop file here or tap</span>
+      <span style={{ fontSize: '12px', color: '#666', textAlign: 'center' }}>Multiple files supported (sent one after another)</span>
     </label>
   )
 }
