@@ -283,12 +283,14 @@ function App() {
                 onChange={setRecipientNpub}
                 placeholder="npub1… (recipient)"
               />
-              <FileSelector
+              <div style={{ marginTop: '16px' }}>
+                <FileSelector
                 onFilesSelect={(files) => {
                   setSelectedFile(files[0] ?? null)
                 }}
                 disabled={state === 'sending' || state === 'receiving' || state === 'connecting'}
-              />
+                />
+              </div>
               {selectedFile && (
                 <p style={{ fontSize: '14px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
