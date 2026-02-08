@@ -246,7 +246,7 @@ function App() {
       <main className="max-w-lg mx-auto px-4 pt-16 pb-8 space-y-8" style={{ ...mainStyles, ...(user && relayStatus.length > 0 ? { paddingBottom: 48 } : {}) }}>
         <div className="text-center" style={{ textAlign: 'center' }}>
           <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '24px', fontWeight: 600, color: '#fff' }}>
-            ⚡ Zoop
+            ϟ Zoop
           </h1>
           <p style={{ fontSize: '14px', color: '#888', marginTop: '4px' }}>
             P2P files over Nostr
@@ -394,7 +394,7 @@ function App() {
               style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#888', textDecoration: 'none' }}
             >
               <span>Kontakt:</span>
-              <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: '11px' }}>
+              <span style={{ fontSize: '11px' }}>
                 {(import.meta.env.VITE_CONTACT_NPUB as string).trim().slice(0, 12)}…
               </span>
             </a>

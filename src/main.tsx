@@ -9,7 +9,7 @@ function showError(title: string, message: string) {
   if (!rootEl) return
   const escaped = message.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   rootEl.innerHTML = `
-    <div style="padding:24px;font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;background:#fff;border:2px solid #dc2626;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+    <div style="padding:24px;font-family:ui-monospace,Menlo,Monaco,'Courier New',monospace;max-width:560px;margin:0 auto;background:#fff;border:2px solid #dc2626;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
       <h1 style="font-size:20px;color:#b91c1c;margin:0 0 12px 0;">${title}</h1>
       <pre style="background:#fef2f2;color:#991b1b;padding:16px;border-radius:8px;overflow:auto;font-size:14px;margin:0;white-space:pre-wrap;word-break:break-all;">${escaped}</pre>
       <p style="font-size:14px;color:#525252;margin:16px 0 0 0;">Open browser console (F12) for details.</p>
@@ -19,7 +19,7 @@ function showError(title: string, message: string) {
 
 const rootEl = document.getElementById('root')
 if (!rootEl) {
-  document.body.innerHTML = '<p style="padding:24px;font-family:system-ui;">Error: #root not found.</p>'
+  document.body.innerHTML = '<p style="padding:24px;font-family:ui-monospace,Menlo,Monaco,\'Courier New\',monospace;">Error: #root not found.</p>'
 } else {
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error('App load timeout (15s). Check console.')), LOAD_TIMEOUT_MS)

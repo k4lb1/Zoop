@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
           style={{
             minHeight: '100vh',
             padding: 24,
-            fontFamily: 'system-ui, sans-serif',
+            fontFamily: 'ui-monospace, Menlo, Monaco, "Courier New", monospace',
             background: '#fafafa',
             color: '#171717',
           }}

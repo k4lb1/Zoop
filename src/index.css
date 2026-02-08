@@ -8,7 +8,8 @@
   --zoop-text: #fff;
   --zoop-text-muted: #888;
   --zoop-border: #333;
-  --zoop-font: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Monaco, "Courier New", monospace;
+  /* System monospace only (no embedded fonts, license-safe) */
+  --zoop-font: ui-monospace, Menlo, Monaco, "Courier New", monospace;
 }
 
 html, body {
@@ -16,6 +17,10 @@ html, body {
   color: var(--zoop-text);
   font-family: var(--zoop-font);
   -webkit-font-smoothing: antialiased;
+}
+
+body * {
+  font-family: inherit;
 }
 
 input::placeholder {
