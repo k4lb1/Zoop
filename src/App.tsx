@@ -3,6 +3,7 @@ import { LoginButton } from './components/LoginButton'
 import { FileSelector } from './components/FileSelector'
 import { RecipientInput } from './components/RecipientInput'
 import { TransferProgress } from './components/TransferProgress'
+import { CashuDonationButton } from './components/CashuDonationButton'
 import { useNostr } from './hooks/useNostr'
 import { useWebRTC } from './hooks/useWebRTC'
 import { useSignalingBridge, type IncomingOffer } from './hooks/useSignalingBridge'
@@ -230,6 +231,7 @@ function App() {
 
   return (
     <div className="min-h-screen" style={baseStyles}>
+      <CashuDonationButton />
       {user ? (
         <header className="absolute top-0 right-0 p-4 z-10" style={{ position: 'absolute', top: 0, right: 0, padding: '16px', zIndex: 10 }}>
           <LoginButton

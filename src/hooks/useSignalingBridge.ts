@@ -196,7 +196,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
         })
         onLog?.('Sending file...')
         await sendFile(peer, file)
-        onLog?.('Done.')
+        onLog?.('Done ✓')
       } finally {
         activeUnsubRef.current?.()
         activeUnsubRef.current = null
@@ -295,7 +295,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
           })
         })
         await receivePromise
-        onLog?.('Done.')
+        onLog?.('Done ✓')
       } finally {
         activeUnsubRef.current?.()
         activeUnsubRef.current = null
@@ -343,7 +343,7 @@ export function useSignalingBridge(params: UseSignalingBridgeParams): UseSignali
         created_at: Math.floor(Date.now() / 1000),
       })
       if (!published) throw new Error('Could not publish fallback event.')
-      onLog?.('Fallback done.')
+      onLog?.('Done ✓')
     },
     [secretKeyHex, publishEvent, onLog]
   )
