@@ -444,7 +444,7 @@ function App() {
                     style={{ display: 'block', padding: '8px 12px', color: '#fff', textDecoration: 'none', fontSize: '13px' }}
                     onClick={() => setShowCoffeePopover(false)}
                   >
-                    In Wallet öffnen
+                    Open in wallet
                   </a>
                   <button
                     type="button"
@@ -457,7 +457,7 @@ function App() {
                       } catch {}
                     }}
                   >
-                    {coffeeCopied ? 'Kopiert' : 'Adresse kopieren'}
+                    {coffeeCopied ? 'Copied' : 'Copy address'}
                   </button>
                 </div>
               </>
