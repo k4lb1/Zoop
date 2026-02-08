@@ -3,7 +3,6 @@ import { LoginButton } from './components/LoginButton'
 import { FileSelector } from './components/FileSelector'
 import { RecipientInput } from './components/RecipientInput'
 import { TransferProgress } from './components/TransferProgress'
-import { CashuDonationButton } from './components/CashuDonationButton'
 import { useNostr } from './hooks/useNostr'
 import { useWebRTC } from './hooks/useWebRTC'
 import { useSignalingBridge, type IncomingOffer } from './hooks/useSignalingBridge'
@@ -231,7 +230,6 @@ function App() {
 
   return (
     <div className="min-h-screen" style={baseStyles}>
-      <CashuDonationButton />
       {user ? (
         <header className="absolute top-0 right-0 p-4 z-10" style={{ position: 'absolute', top: 0, right: 0, padding: '16px', zIndex: 10 }}>
           <LoginButton
@@ -375,16 +373,23 @@ function App() {
                   onChange={() => toggleRelay(r.url)}
                   style={{ width: '14px', height: '14px', margin: 0, cursor: 'pointer' }}
                 />
-                <span>{r.status === 'connected' ? '🟢' : '🔴'}</span>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: r.status === 'connected' ? '#fff' : '#000',
+                    flexShrink: 0,
+                  }}
+                />
                 <span>{host}</span>
-                <span style={{ color: r.status === 'connected' ? '#86efac' : '#f87171' }}>
+                <span style={{ color: r.status === 'connected' ? '#fff' : '#888' }}>
                   {r.status === 'connected' && r.latencyMs != null ? `${r.latencyMs} ms` : r.enabled ? (r.status === 'failed' ? 'failed' : '—') : 'off'}
                 </span>
               </span>
             )
           })}
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} title="0x0.st fallback (used when WebRTC fails)">
-            <span>{usedFallback ? '🟡' : '⚪'}</span>
             <span>0x0</span>
           </span>
           {(import.meta.env.VITE_CONTACT_NPUB as string | undefined)?.trim() && (
@@ -401,6 +406,13 @@ function App() {
               </span>
             </a>
           )}
+          <a
+            href="lightning:npub1ff5x2ah4tnmad93mfwpa8trklwy8ttctn5x2q8zzlm33xlr8mruq3l7q4q@npub.cash"
+            title="Buy me a coffee ☕"
+            style={{ display: 'inline-flex', alignItems: 'center', color: '#888', marginLeft: '4px', textDecoration: 'none' }}
+          >
+            <span style={{ fontSize: '18px' }}>☕</span>
+          </a>
           <a
             href="https://github.com/k4lb1/Zoop"
             target="_blank"
