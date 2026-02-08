@@ -19,6 +19,8 @@ To run your own instance of Zoop on GitHub Pages:
 
 That’s it. Your own instance of Zoop should now be running.
 
+**Note:** The repo does not include a pre-built `dist/` folder (it’s intentionally not committed). For GitHub Pages, the workflow creates it automatically. To run the built app locally, see “Build & run locally” below.
+
 ---
 
 ## Features
@@ -57,7 +59,7 @@ That’s it. Your own instance of Zoop should now be running.
 
 ---
 
-## Install & run
+## Install & run (development)
 
 ```bash
 git clone https://github.com/k4lb1/Zoop.git
@@ -66,16 +68,21 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5173** (or the port shown).
+Open **http://localhost:5173** (or the port shown). No `dist/` folder is needed for development.
 
 ---
 
-## Build & preview
+## Build & run locally (production)
+
+To test the built app locally (e.g. before deploying), you need to create **`dist/`** first—it is not in the repo. From the project directory:
 
 ```bash
-npm run build
-npm run preview
+npm install   # if you haven’t already
+npm run build # creates the dist/ folder
+npm run preview   # serves the build (e.g. http://localhost:4173)
 ```
+
+Or in one step: `npm start` (builds and starts the preview server).
 
 ---
 

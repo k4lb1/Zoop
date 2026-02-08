@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "npm run build && npm run preview"
   },
   "dependencies": {
     "@noble/secp256k1": "^2.0.0",
