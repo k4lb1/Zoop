@@ -7,6 +7,9 @@
 **Status:** v0.1.0 – early development. This software has not undergone a security or cryptography review. Use at your own risk; treat it as experimental.
 
 ---
+## ⚠️ Project No Longer Maintained
+This project is inactive and is no longer being developed or maintained. 
+Feel free to fork it if you wish to continue development.
 
 ## Quick Start for Forks
 
